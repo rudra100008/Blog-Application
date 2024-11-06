@@ -7,7 +7,7 @@ import { faDumpster, faEdit, faEllipsis, faThumbsDown, faThumbsUp } from "@forta
 import { toast } from "react-toastify";
 import UpdatePost from "./UpdatePost";
 import { faComment } from "@fortawesome/free-regular-svg-icons";
-import { Button, Form, FormGroup, Input } from "reactstrap";
+import { Form, FormGroup, Input } from "reactstrap";
 
 
 const Post = ({ post, isUserPost, onDelete }) => {
@@ -21,6 +21,8 @@ const Post = ({ post, isUserPost, onDelete }) => {
     const [showComments, setShowComments] = useState(false);
     const [comments, setComments] = useState('');
     const [getAllComments, setGetAllComments] = useState([])
+    const [userImage, setUserImage] = useState({});
+    const [username, setUsername] = useState([]);
     const getToken = () => {
         return localStorage.getItem("token");
     };
@@ -45,19 +47,31 @@ const Post = ({ post, isUserPost, onDelete }) => {
         const token = getToken();
         const postId = post.postId;
         try {
-            const response = await axios.post(`${base_url}/comments/user/${userId}/post/${postId}`, {
-                comments: comments
-            }, {
-                headers: { Authorization: `Bearer ${token}` }
-            })
-            console.log(response.data);
-            console.log("comment success")
-            setComments('');
+            const response = await axios.post(
+                `${base_url}/comments/user/${userId}/post/${postId}`,
+                { comments: comments },
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+
+            console.log("Comment success", response.data);
+
+            const newComment = response.data;  // Assuming response.data contains the newly created comment
+            setComments('');  // Clear the comment input
+
+            // Update the comments list with the new comment
+            setGetAllComments((prevComments) => {
+                const updatedComments = [...prevComments, newComment];
+                if (newComment.userId) {
+                    fetchUserComment(newComment.userId);  // Fetch the user's image for the new comment
+                }
+                return updatedComments;
+            });
         } catch (error) {
-            console.log(error.response.data)
-            console.log("comment Failed")
+            console.error("Comment failed:", error.response ? error.response.data : error.message);
+            toast.error("Failed to post comment.");
         }
-    }
+    };
+
     const getAllCommentsFromServer = async () => {
         const token = getToken();
         const postId = post.postId;
@@ -67,12 +81,18 @@ const Post = ({ post, isUserPost, onDelete }) => {
                 params: { pagNumber: 0, pageSize: 3 }
             })
             const { data } = response.data;
-            const commentList = data.map(({ comments, id }) => ({ comments, id }));
+            const commentList = data.map(({ comments, id, userId }) => ({ comments, id, userId }));
+            commentList.forEach(comment => {
+                if (comment.userId) {
+                    fetchUserComment(comment.userId);
+                }
+            })
             setGetAllComments(commentList);
         } catch (error) {
             console.log(error)
         }
     }
+
     const handleDelete = () => {
         axios.delete(`${base_url}/posts/${post.postId}`, {
             headers: {
@@ -124,20 +144,18 @@ const Post = ({ post, isUserPost, onDelete }) => {
                 setIsLiked(true);
                 setIsNotLiked(false); // Ensure dislike is removed if liking
                 saveLike(true, false);
-                toast.success("Post liked successfully");
                 console.log("Post liked", response.data);
             } else {
                 // Like was removed
                 setIsLiked(false);
                 saveLike(false, isNotLiked);
-                toast.info("Like removed");
+                
             }
         } catch (error) {
             console.error("Error toggling like:", error);
             toast.error("Could not toggle like on the post.");
         }
     };
-
 
     const handleDislikePost = async () => {
         const token = getToken();
@@ -163,6 +181,35 @@ const Post = ({ post, isUserPost, onDelete }) => {
             console.error("Error disliking Post: ", error.response.data);
         }
     }
+
+    const fetchUserImage = async (imageName, userId) => {
+        const token = getToken();
+        await axios.get(`${base_url}/users/getImage/${imageName}`, {
+            headers: { Authorization: `Bearer ${token}` },
+            responseType: 'blob',
+        }).then((response) => {
+            const imageURL = URL.createObjectURL(response.data);
+            setUserImage(prevImage => ({ ...prevImage, [userId]: imageURL }));
+        }).catch((error) => {
+            console.log(error.response.data);
+        })
+    }
+
+    const fetchUserComment = async (userId) => {
+        const token = getToken();
+        await axios.get(`${base_url}/users/${userId}`, {
+            headers: { Authorization: `Bearer ${token}` }
+        }).then((response) => {
+            const { image, username } = response.data;
+            if (image) {
+                fetchUserImage(image, userId);
+            }
+            setUsername(prevUsername => ({ ...prevUsername, [userId]: username }));
+        }).catch((error) => {
+            console.log(error.response)
+        })
+    }
+
     const fetchUserDetails = async () => {
         const token = getToken();
         await axios.get(`${base_url}/users/${post.userId}`, {
@@ -170,11 +217,12 @@ const Post = ({ post, isUserPost, onDelete }) => {
                 Authorization: `Bearer ${token}`
             }
         }).then((response) => {
-            setUser(response.data)
+            setUser(response.data);
         }).catch((err) => {
             console.log(err.response.data)
         })
     }
+
     useEffect(() => {
         if (post?.image) {
             fetchImage();
@@ -183,6 +231,7 @@ const Post = ({ post, isUserPost, onDelete }) => {
             fetchUserDetails();
         }
         getAllCommentsFromServer();
+        // getUserData();
         loadLikeSaved();
     }, [post?.image, post?.userId]);
 
@@ -292,11 +341,10 @@ const Post = ({ post, isUserPost, onDelete }) => {
                 {/* Image Container */}
 
             </div>
-            {/*Comment section */}
+            {/* Comment Section */}
             {
-                showComments &&
-                <>
-                    <div className="bg-gray-100 rounded-2xl shadow-xl max-w-sm w-full py-3 px-4 ">
+                showComments && (
+                    <div className="bg-gray-100 rounded-xl shadow-xl max-w-sm w-full py-3 px-4">
                         <Form onSubmit={(e) => e.preventDefault()}>
                             <FormGroup>
                                 <Input
@@ -306,23 +354,49 @@ const Post = ({ post, isUserPost, onDelete }) => {
                                     value={comments}
                                     onChange={(e) => setComments(e.target.value)}
                                     placeholder="Write a comment...."
+                                    className="border-gray-300 shadow-md"
                                 />
                             </FormGroup>
-                            <button onClick={commentsHandler} className=" bg-sky-300 rounded-2xl shadow-lg py-2 px-4 font-semibold transition-transform hover:scale-110 hover:text-white" >
+                            <button
+                                onClick={commentsHandler}
+                                className="bg-sky-300 rounded-xl shadow-lg py-2 px-4 font-semibold text-white transition-transform hover:scale-110 hover:bg-sky-400"
+                            >
                                 Comment
                             </button>
                         </Form>
-                        {getAllComments.length > 0 &&
-                            getAllComments.map((comment) => (
-                                <div key={comment.id} className="border-b py-3">
-                                    {/* <img src={image} className="w-4 h-4 rounded-full" alt="" /> */}
-                                    <p className="text-gray-700 text-sm">{comment.comments}</p>
-                                </div>
-                            ))
-                        }
+
+                        {/* Comment List */}
+                        <div className="max-h-48 overflow-y-auto mt-3"> {/* Fixed height and scrollable content */}
+                            {getAllComments.length > 0 &&
+                                getAllComments.map((comment) => (
+                                    <div key={comment.id} className="border-b py-3  space-x-3">
+                                        {/* User's Image and Name */}
+                                        <div className="flex items-center space-x-2">
+                                            {userImage[comment.userId] ? (
+                                                <img
+                                                    src={userImage[comment.userId]}
+                                                    className="w-8 h-8 rounded-full"
+                                                    alt="User Avatar"
+                                                />
+                                            ) : (
+                                                <div className="w-8 h-8 rounded-full bg-gray-300"></div> // Placeholder if no image
+                                            )}
+                                            <span className="font-semibold text-sm text-gray-800">{username[comment.userId]}</span>
+                                        </div>
+
+                                        {/* Comment Content */}
+                                        <div className="text-sm mx-5 text-gray-700 mt-1">{comment.comments}</div>
+
+                                        {/* Optionally, you can add the comment date here */}
+                                        {/* <span className="text-xs text-gray-500 mt-1 ml-2">{new Date(comment.createdAt).toLocaleString()}</span> */}
+                                    </div>
+                                ))
+                            }
+                        </div>
                     </div>
-                </>
+                )
             }
+
             {
                 showModel &&
                 (
