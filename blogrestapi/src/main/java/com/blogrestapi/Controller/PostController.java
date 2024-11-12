@@ -44,14 +44,14 @@ public class PostController {
             @RequestParam(value = "pageSize", required = false, defaultValue = AppConstant.PAGE_SIZE) int pageSize,
             @RequestParam(value = "sortBy", defaultValue = AppConstant.SORT_BY, required = false) String sortBy,
             @RequestParam(value = "sortDir", defaultValue = AppConstant.SORT_DIR, required = false) String sortDir) {
-        PageResponse<PostDTO> getPageResponse = this.postService.getAllPost(pageNumber, pageSize, sortBy, sortDir);
+        PageResponse<PostDTO> getPageResponse = this.postService.getAllPost(pageNumber, pageSize, sortBy, sortDir).join();
         return ResponseEntity.status(HttpStatus.OK).body(getPageResponse);
     }
 
     // handler for getting single by id of the particular user
     @GetMapping("/posts/{id}")
     public ResponseEntity<?> getPostById(@PathVariable("id") int id) {
-        PostDTO postDTO = this.postService.getPostById(id);
+        PostDTO postDTO = this.postService.getPostById(id).join();
         return ResponseEntity.ok(postDTO);
     }
 
@@ -153,7 +153,7 @@ public class PostController {
     @DeleteMapping("/posts/{id}")
     public ResponseEntity<?> deletePost(@PathVariable("id") int id) {
         Map<String, Object> response = new HashMap<>();
-        PostDTO getPost = this.postService.getPostById(id);
+        PostDTO getPost = this.postService.getPostById(id).join();
         this.postService.deletePostById(id);
         response.put("status", "Ok(200)");
         response.put("message", getPost);
@@ -199,7 +199,7 @@ public class PostController {
     ) {
         try {
             // Get the post by ID
-            PostDTO postDTO = this.postService.getPostById(postId);
+            PostDTO postDTO = this.postService.getPostById(postId).join();
             // Upload the image file to the specified directory
             String fileName = this.fileService.uploadFile(path, imageFile);    
             // Set the image file name in the postDTO

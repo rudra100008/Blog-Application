@@ -2,6 +2,7 @@ package com.blogrestapi.Service;
 
 
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 import org.springframework.stereotype.Service;
 
@@ -12,9 +13,9 @@ import com.blogrestapi.DTO.PostDTO;
 public interface PostService {
 
     //get all post
-    PageResponse<PostDTO> getAllPost(int pageNumber,int pageSize,String sortBy,String sortDir);
+    CompletableFuture<PageResponse<PostDTO>> getAllPost(int pageNumber, int pageSize, String sortBy, String sortDir);
     //get post by id
-    PostDTO getPostById(int id);
+    CompletableFuture<PostDTO> getPostById(int id);
     //save the post
     PostDTO createPost(PostDTO postDTO,int userId,int categoryId);
     //delete the post

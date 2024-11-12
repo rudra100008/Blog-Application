@@ -2,14 +2,18 @@ package com.blogrestapi.ServiceImpl;
 
 import java.util.Date;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 import com.blogrestapi.Config.AppConstant;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import com.blogrestapi.DTO.PageResponse;
@@ -22,8 +26,10 @@ import com.blogrestapi.Entity.Post;
 import com.blogrestapi.Entity.User;
 import com.blogrestapi.Exception.ResourceNotFoundException;
 import com.blogrestapi.Service.PostService;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@Transactional
 public class PostServiceImpl implements PostService {
 
     @Autowired
@@ -37,9 +43,16 @@ public class PostServiceImpl implements PostService {
     private CategoryDao categoryDao;
     @Autowired
     private SequenceGeneratorService sequence;
+    private static final  String  CACHE_ALL_POSTS ="cacheAllPosts";
+    private static final String CACHE_POST = "cachePost";
+    private static final String CACHE_POST_BY_USERID = "cachePostByUserId";
+    private static  final String CACHE_POST_BY_CATEGORYID = "cachePostByCategoryId";
 
+    @Async
     @Override
-    public PageResponse<PostDTO> getAllPost(int pageNumber,int pageSize,String sortBy,String sortDir) {
+    @Transactional(readOnly = true)
+    @Cacheable(value = CACHE_ALL_POSTS)
+    public CompletableFuture<PageResponse<PostDTO>> getAllPost(int pageNumber, int pageSize, String sortBy, String sortDir) {
 
         Sort sort=sortDir.equalsIgnoreCase(AppConstant.SORT_DIR)
                 ?Sort.by(sortBy).ascending()
@@ -61,18 +74,22 @@ public class PostServiceImpl implements PostService {
                 totalElement,
                 lastPage
         );
-        return pageResponse;
+        return CompletableFuture.completedFuture(pageResponse);
     }
 
 
     @Override
-    public PostDTO getPostById(int id) {
-        return this.postDao.findById(id)
+    @Transactional(readOnly = true)
+    @Cacheable(value = CACHE_POST, key = "#id")
+    public CompletableFuture<PostDTO> getPostById(int id) {
+        PostDTO fetchPostById = this.postDao.findById(id)
                 .map(post -> modelMapper.map(post, PostDTO.class))
                 .orElseThrow(() -> new ResourceNotFoundException("Post not found with  id: " + id));
+        return CompletableFuture.completedFuture(fetchPostById);
     }
 
     @Override
+    @CacheEvict(value = {CACHE_POST,CACHE_ALL_POSTS,CACHE_POST_BY_CATEGORYID,CACHE_POST_BY_USERID},allEntries = true)
     public PostDTO createPost(PostDTO postDTO, int userId, int categoryId) {
         postDTO.setPostId((int)sequence.generateSequence("post_sequence"));
         User user = this.userDao.findById(userId)
@@ -89,10 +106,11 @@ public class PostServiceImpl implements PostService {
         return modelMapper.map(savedPost, PostDTO.class);
     }
 
-//
 
+    @Async
     @Override
-    public void deletePostById(int id) {
+    @CacheEvict(value = {CACHE_POST,CACHE_ALL_POSTS,CACHE_POST_BY_CATEGORYID,CACHE_POST_BY_USERID},allEntries = true)
+            public void deletePostById(int id) {
         if (!this.postDao.existsById(id)) {
             throw new ResourceNotFoundException("Post not found with id: " + id);
         }
@@ -100,12 +118,14 @@ public class PostServiceImpl implements PostService {
     }
 
     @Override
+    @CacheEvict(value = {CACHE_POST,CACHE_ALL_POSTS,CACHE_POST_BY_CATEGORYID,CACHE_POST_BY_USERID},allEntries = true)
     public List<PostDTO> searchPost(String keyword) {
         List<Post> listPost =this.postDao.findByPostTitleContainingIgnoreCase(keyword);
         return listPost.stream().map(p->modelMapper.map(p, PostDTO.class)).toList();
     }
 
     @Override
+    @CacheEvict(value = {CACHE_POST,CACHE_ALL_POSTS,CACHE_POST_BY_CATEGORYID,CACHE_POST_BY_USERID},allEntries = true)
     public PostDTO updatePostField(int id, PostDTO postDTO, int userId, int categoryId) {
         Post post = this.postDao.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Post not found with id: " + id));
@@ -139,6 +159,7 @@ public class PostServiceImpl implements PostService {
     }
 
     @Override
+    @Cacheable(value = CACHE_POST_BY_USERID, key = "#userId")
     public PageResponse<PostDTO> getPostByUserId(int userId,int pageNumber,int pageSize,String sortBy,String sortDir) {
         Sort sort=sortDir.equalsIgnoreCase(AppConstant.SORT_DIR)
         ?Sort.by(sortBy).ascending():Sort.by(sortBy).descending();
@@ -165,6 +186,7 @@ public class PostServiceImpl implements PostService {
     }
 
     @Override
+    @Cacheable(value = CACHE_POST_BY_CATEGORYID,key = "#categoryId")
     public PageResponse<PostDTO> getPostByCategoryId(int categoryId,int pageNumber,int pageSize,String sortBy,String sortDir) {
         Sort sort=sortDir.equalsIgnoreCase(AppConstant.SORT_DIR)
         ?Sort.by(sortBy).ascending():Sort.by(sortBy).descending();
