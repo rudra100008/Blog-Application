@@ -16,14 +16,11 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-
 import com.blogrestapi.Config.AppConstant;
 import com.blogrestapi.DTO.PageResponse;
 import com.blogrestapi.DTO.PostDTO;
 import com.blogrestapi.Service.FileService;
 import com.blogrestapi.Service.PostService;
-
-import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 
 @RestController
@@ -88,12 +85,12 @@ public class PostController {
                 }
                 imageName = this.fileService.uploadFile(path, imageFile);
             } catch (IOException e) {
-                e.printStackTrace();  // Log the exception
+                System.out.println(e.getMessage()); // Log the exception
                 response.put("status", "INTERNAL_SERVER_ERROR(500)");
                 response.put("message", "Image upload failed: " + e.getMessage());
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
             } catch (Exception e) {
-                e.printStackTrace();  // Log unexpected exceptions
+                System.out.println(e.getMessage());  // Log unexpected exceptions
                 response.put("status", "INTERNAL_SERVER_ERROR(500)");
                 response.put("message", "An unexpected error occurred: " + e.getMessage());
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
@@ -218,7 +215,7 @@ public class PostController {
     }
     //handler to get the image form the database
     @GetMapping(value = "/posts/image/{imageName}",produces = MediaType.IMAGE_JPEG_VALUE)
-    public ResponseEntity<byte[]> getImages(@PathVariable("imageName")String imageName,HttpServletResponse response)
+    public ResponseEntity<byte[]> getImages(@PathVariable("imageName")String imageName)
     {
        try {
          InputStream is= this.fileService.getFile(path, imageName);

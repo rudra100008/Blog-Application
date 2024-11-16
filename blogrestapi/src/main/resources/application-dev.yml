@@ -1,0 +1,18 @@
+#spring.data.mongodb.database=blog
+#spring.data.mongodb.host=localhost
+#spring.data.mongodb.port=27017
+#spring.data.mongodb.uri=mongodb://localhost:27017/blog
+
+spring:
+  data:
+    mongodb:
+      database: blog
+      host: localhost
+      port: 27017
+      uri: mongodb://localhost:27017/blog
+      auto-index-creation: true
+
+jwt:
+  token:
+    validity: 18000000  # 5 hours in milliseconds
+    secret: bSpklEFrxjndNKXEHx+dINawVmCwGyjJyws1zhqlkJc=

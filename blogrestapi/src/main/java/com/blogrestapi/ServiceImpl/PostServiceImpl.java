@@ -3,10 +3,9 @@ package com.blogrestapi.ServiceImpl;
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
-
 import com.blogrestapi.Config.AppConstant;
+import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
@@ -30,19 +29,14 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @Transactional
+@RequiredArgsConstructor
 public class PostServiceImpl implements PostService {
-
-    @Autowired
     private PostDao postDao;
-    @Autowired
     private ModelMapper modelMapper;
-
-    @Autowired
     private UserDao userDao;
-    @Autowired
     private CategoryDao categoryDao;
-    @Autowired
     private SequenceGeneratorService sequence;
+
     private static final  String  CACHE_ALL_POSTS ="cacheAllPosts";
     private static final String CACHE_POST = "cachePost";
     private static final String CACHE_POST_BY_USERID = "cachePostByUserId";
@@ -141,7 +135,7 @@ public class PostServiceImpl implements PostService {
         }  
         if (postDTO.getImage()!=null) {
             post.setImage(postDTO.getImage());
-        } else if(postDTO.getImage()==null)
+        } else
         {
             post.setImage("default.jpg");
         }  
@@ -173,7 +167,7 @@ public class PostServiceImpl implements PostService {
         long totalElement=page.getTotalElements();
         int totalPage=page.getTotalPages();
         boolean lastPage=page.isLast();
-        PageResponse<PostDTO> pageResponse=new PageResponse<>(
+        return new PageResponse<>(
             "OK(200)",
             allPost,
             pageSize,
@@ -182,7 +176,6 @@ public class PostServiceImpl implements PostService {
             totalElement,
             lastPage
         );
-        return pageResponse;
     }
 
     @Override
@@ -202,7 +195,7 @@ public class PostServiceImpl implements PostService {
         long totalElement=pagePost.getTotalElements();
         int totalPage=pagePost.getTotalPages();
         boolean lastPage=pagePost.isLast();
-        PageResponse<PostDTO> pageResponse=new PageResponse<>(
+        return new PageResponse<>(
             "Ok(200)",
             allPost,
             pageSize,
@@ -211,6 +204,6 @@ public class PostServiceImpl implements PostService {
             totalElement,
             lastPage
         );
-       return pageResponse;
+
     }
 }

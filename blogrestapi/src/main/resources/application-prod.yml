@@ -1,0 +1,10 @@
+spring:
+  data:
+    mongodb:
+      uri: ${MONGODB_URI}  # Railway will provide this
+      auto-index-creation: false
+
+jwt:
+  token:
+    validity: 18000000
+    secret: ${JWT_SECRET_KEY}
