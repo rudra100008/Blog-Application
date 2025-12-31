@@ -41,6 +41,7 @@ export default function Signup() {
             description: user.description,
         })], { type: "application/json" }))
         formData.append("image", user.image)
+        
         axios.post(`${base_url}/register`, formData).then(
             (response) => {
                 console.log(response.data);

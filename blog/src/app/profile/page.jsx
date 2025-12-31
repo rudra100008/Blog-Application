@@ -96,7 +96,7 @@ const Profile = () => {
 
   const getUserImageFromServer = async () => {
     await axios
-      .get(`${base_url}/users/getImage/${userDetails.image}`, {
+      .get(`${base_url}${userDetails.image}`, {
         headers: {
           Authorization: `Bearer ${getToken()}`,
         },

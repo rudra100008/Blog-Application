@@ -20,7 +20,7 @@ const Navbar = ({ user }) => {
   };
 
   const getUserImageFromServer = async () => {
-    await axios.get(`${base_url}/users/getImage/${user.image}`, {
+    await axios.get(`${base_url}${user.image}`, {
       headers: {
         Authorization: `Bearer ${getToken()}`,
       },
