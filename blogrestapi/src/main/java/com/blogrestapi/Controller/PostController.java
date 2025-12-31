@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -25,6 +26,7 @@ import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api")
+@Slf4j
 public class PostController {
     @Autowired
     private PostService postService;
@@ -41,7 +43,9 @@ public class PostController {
             @RequestParam(value = "pageSize", required = false, defaultValue = AppConstant.PAGE_SIZE) int pageSize,
             @RequestParam(value = "sortBy", defaultValue = AppConstant.SORT_BY, required = false) String sortBy,
             @RequestParam(value = "sortDir", defaultValue = AppConstant.SORT_DIR, required = false) String sortDir) {
+
         PageResponse<PostDTO> getPageResponse = this.postService.getAllPost(pageNumber, pageSize, sortBy, sortDir).join();
+        log.info("PageInfo : {}",getPageResponse);
         return ResponseEntity.status(HttpStatus.OK).body(getPageResponse);
     }
 
@@ -217,15 +221,16 @@ public class PostController {
     @GetMapping(value = "/posts/image/{imageName}",produces = MediaType.IMAGE_JPEG_VALUE)
     public ResponseEntity<byte[]> getImages(@PathVariable("imageName")String imageName)
     {
-       try {
-         InputStream is= this.fileService.getFile(path, imageName);
-         byte[] b=is.readAllBytes();
-        return ResponseEntity.status(HttpStatus.OK).contentType(MediaType.IMAGE_JPEG).body(b);
-       } catch (FileNotFoundException e) {
-        throw new RuntimeException("You have inserted wrong imageName.We could not found image with this name: "+imageName);
-       }catch (IOException e) {
-            throw new RuntimeException("File download  failed. Please try again.", e);
-        }
+//       try {
+//
+//
+//        return ResponseEntity.status(HttpStatus.OK).contentType(MediaType.IMAGE_JPEG).body(null);
+//       } catch (FileNotFoundException e) {
+//        throw new RuntimeException("You have inserted wrong imageName.We could not found image with this name: "+imageName);
+//       }catch (IOException e) {
+//            throw new RuntimeException("File download  failed. Please try again.", e);
+//        }
+        return null;
     }
 
     

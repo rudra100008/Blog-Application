@@ -9,5 +9,7 @@ import org.springframework.web.multipart.MultipartFile;
 @Service
 public interface FileService {
     String uploadFile(String path,MultipartFile file)throws IOException;
-    InputStream getFile(String path,String fileName)throws FileNotFoundException;
+    byte[] getFile(String fileDir)throws FileNotFoundException;
+    String deleteFile(String fileDir)throws IOException;
+
 }

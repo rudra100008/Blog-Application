@@ -19,7 +19,7 @@ import lombok.NoArgsConstructor;
 @Document(collection = "users")
 public class User implements UserDetails {
     @MongoId
-    private int id;
+    private Integer id;
     private String username;
     private String email;
     private String password;

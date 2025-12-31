@@ -1,12 +1,20 @@
 package com.blogrestapi.ServiceImpl;
 
 
+import java.io.File;
+import java.io.IOException;
 import java.util.List;
 
 import java.util.stream.Collectors;
 
+import com.blogrestapi.Exception.ImageInvalidException;
+import com.blogrestapi.Exception.UnauthorizedException;
+import com.blogrestapi.Security.AuthUtils;
+import com.blogrestapi.Service.FileService;
+import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -19,19 +27,21 @@ import com.blogrestapi.Entity.User;
 import com.blogrestapi.Exception.AlreadyExistsException;
 import com.blogrestapi.Exception.ResourceNotFoundException;
 import com.blogrestapi.Service.UserService;
+import org.springframework.web.multipart.MultipartFile;
 
 @Service
+@RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
-    @Autowired
-    private UserDao userDao;
-    @Autowired
-    private ModelMapper modelMapper;
-    @Autowired
-    private SequenceGeneratorService sequence;
-    @Autowired
-    BCryptPasswordEncoder encoder;
-    @Autowired
-    private RoleDao roleDao;
+    private  final UserDao userDao;
+    private final ModelMapper modelMapper;
+    private final SequenceGeneratorService sequence;
+    private final BCryptPasswordEncoder encoder;
+    private final  RoleDao roleDao;
+    private final FileService fileService;
+    private final AuthUtils authUtils;
+    @Value("${project.users.image}")
+    private  static String FILE_PATH;
+
     @Override
     public List<UserDTO> getUsers() {
         return this.userDao.findAll().stream()
@@ -118,6 +128,29 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    public UserDTO uploadImage(MultipartFile file, Integer userId) {
+        try{
+            User user = validateUser(userId);
+            String completePath = this.fileService.uploadFile(FILE_PATH,file);
+            user.setImage(completePath);
+            User savedUser = this.userDao.save(user);
+            return this.modelMapper.map(savedUser,UserDTO.class);
+        }catch(IOException e){
+            throw new ImageInvalidException("Image uploading failed");
+        }
+    }
+
+    @Override
+    public byte[] fetchUserImage(Integer userId) {
+        User user = validateUser(userId);
+        try{
+            return this.fileService.getFile(user.getImage());
+        }catch (IOException e){
+            throw new ImageInvalidException("Image fetching failed.");
+        }
+    }
+
+    @Override
     public UserDTO registerNewUser(UserDTO userDTO) {
         User user=this.modelMapper.map(userDTO, User.class);
         if (this.userDao.existsByUsername(user.getUsername())) {
@@ -143,7 +176,15 @@ public class UserServiceImpl implements UserService {
        return modelMapper.map(saveUser, UserDTO.class);
     }
    
-   
+   //helper method
+    private User validateUser(Integer userId){
+        User loggedInUser = this.authUtils.getLoggedInUser();
+        if(loggedInUser.getId().equals(userId)){
+            return loggedInUser;
+        }else {
+            throw  new UnauthorizedException("User is not authorized for this service.");
+        }
+    }
 
     
 }

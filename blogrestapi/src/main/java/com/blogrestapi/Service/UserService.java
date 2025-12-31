@@ -5,7 +5,7 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 
 import com.blogrestapi.DTO.UserDTO;
-
+import org.springframework.web.multipart.MultipartFile;
 
 
 @Service
@@ -16,4 +16,6 @@ public interface UserService {
     UserDTO createUser(UserDTO userDTO); 
     UserDTO updateUserById(int id, UserDTO userDTO);
     void deleteUserById(int id);
+    UserDTO uploadImage(MultipartFile file,Integer userId);
+    byte[] fetchUserImage(Integer userId);
 }

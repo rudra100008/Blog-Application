@@ -1,6 +1,7 @@
 
 package com.blogrestapi.Controller;
 
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -16,6 +17,7 @@ import com.blogrestapi.Exception.ResourceNotFoundException;
 import com.blogrestapi.Security.UserDetailService;
 import com.blogrestapi.ServiceImpl.FileServiceImpl;
 import com.blogrestapi.ValidationGroup.UpdateUserGroup;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -37,15 +39,14 @@ import org.springframework.web.multipart.MultipartFile;
 @RestController
 @RequestMapping("/api")
 @CrossOrigin("http://localhost:3000")
+@RequiredArgsConstructor
 public class BlogController {
-    @Autowired
-    private UserService userService;
-    @Autowired
-    private FileServiceImpl fileService;
+    private final UserService userService;
+    private final FileServiceImpl fileService;
     @Value("${project.users.image}")
-    private String imagePath;
-    @Autowired
-    private UserDao userDao;
+    private  String imagePath;
+    private final UserDao userDao;
+
     // this handler get all the user data from the database
     @GetMapping("/users")
     public ResponseEntity<List<UserDTO>> getAllUser() {
@@ -55,14 +56,14 @@ public class BlogController {
         }
         return ResponseEntity.ok(getAllUser);
     }
-    @GetMapping(value = "/users/getImage/{image}",produces = MediaType.IMAGE_JPEG_VALUE)
-    public ResponseEntity<?> getUserImage(@PathVariable("image")String image)throws  IOException{
+
+    @GetMapping(value = "/user/{userId}/fetchImage",produces = MediaType.IMAGE_JPEG_VALUE)
+    public ResponseEntity<?> getUserImage(@PathVariable("userId")Integer userId)throws  IOException{
         try {
-            InputStream is = this.fileService.getFile(imagePath, image);
-            byte[] b = is.readAllBytes();
+            byte[] b = this.userService.fetchUserImage(userId);
             return ResponseEntity.status(HttpStatus.OK).contentType(MediaType.IMAGE_JPEG).body(b);
-        }catch (FileNotFoundException file){
-            throw new FileNotFoundException("Image not found with the name: "+image);
+        }catch (Exception e){
+            throw new FileNotFoundException("Image not found ");
         }
 
     }
@@ -70,8 +71,9 @@ public class BlogController {
 
     @GetMapping("/users/{id}")
     public ResponseEntity<?> getUserById(@PathVariable("id") int id) {
-        UserDTO getUserById = this.userService.getUserById(id);
-        return ResponseEntity.ok(getUserById);
+        UserDTO user = this.userService.getUserById(id);
+        user.setImage(getUserImagePath(user.getId()));
+        return ResponseEntity.ok(user);
     }
     @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/users/{id}")
@@ -153,6 +155,11 @@ public class BlogController {
        userDTO.setImage(fileName);
        UserDTO user =this.userService.updateUserById(id,userDTO);
        return ResponseEntity.status(HttpStatus.OK).body(user) ;
+    }
+
+    //helper method
+    private String getUserImagePath(Integer userId){
+        return "/user/"+ userId + "/fetchImage";
     }
 
 }
