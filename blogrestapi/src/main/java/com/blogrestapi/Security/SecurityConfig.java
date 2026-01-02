@@ -2,6 +2,7 @@ package com.blogrestapi.Security;
 
 import com.blogrestapi.Service.TokenBlackListService;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -32,6 +33,7 @@ import static org.springframework.security.config.Customizer.withDefaults;
 @EnableWebSecurity
 @EnableWebMvc
 @EnableMethodSecurity
+@RequiredArgsConstructor
 public class SecurityConfig {
 
     private final UserDetailsService userDetailService;
@@ -45,19 +47,14 @@ public class SecurityConfig {
             "/api/login", "/api/register","/api/posts/**"
     };
 
-    @Autowired
-    private JWTAuthencticationEntryPoint entryPoint;
+    private final JWTAuthencticationEntryPoint entryPoint;
 
-    @Autowired
-    private JwtAuthenticationFilter filter;
 
-    @Autowired
-    private TokenBlackListService tokenBlackListService;
+    private final JwtAuthenticationFilter filter;
 
-    public SecurityConfig(UserDetailsService userDetailService, PasswordEncoder passwordEncoder) {
-        this.userDetailService = userDetailService;
-        this.passwordEncoder = passwordEncoder;
-    }
+    private final TokenBlackListService tokenBlackListService;
+
+
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
