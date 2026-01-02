@@ -7,7 +7,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.blogrestapi.Entity.Post;
+import com.blogrestapi.Exception.ImageInvalidException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -27,32 +30,34 @@ import jakarta.validation.Valid;
 @RestController
 @RequestMapping("/api")
 @Slf4j
+@RequiredArgsConstructor
 public class PostController {
-    @Autowired
-    private PostService postService;
-    @Autowired
-    private FileService fileService;
-    @Autowired
-    private ObjectMapper objectMapper;
-    @Value("${project.image}")
-    private String path;
+    private final PostService postService;
+    private final FileService fileService;
+    private final ObjectMapper objectMapper;
+
+
+
     // getting the all post in the database
     @GetMapping("/posts")
     public ResponseEntity<?> getAllPost(
             @RequestParam(value = "pageNumber", required = false, defaultValue = AppConstant.PAGE_NUMBER) int pageNumber,
             @RequestParam(value = "pageSize", required = false, defaultValue = AppConstant.PAGE_SIZE) int pageSize,
             @RequestParam(value = "sortBy", defaultValue = AppConstant.SORT_BY, required = false) String sortBy,
-            @RequestParam(value = "sortDir", defaultValue = AppConstant.SORT_DIR, required = false) String sortDir) {
+            @RequestParam(value = "sortDir", defaultValue = AppConstant.SORT_DIR, required = false) String sortDir
+    )
+    {
 
-        PageResponse<PostDTO> getPageResponse = this.postService.getAllPost(pageNumber, pageSize, sortBy, sortDir).join();
-        log.info("PageInfo : {}",getPageResponse);
+        PageResponse<PostDTO> getPageResponse = this.postService.getAllPosts(pageNumber, pageSize, sortBy, sortDir);
+        updatePostImageUrl(getPageResponse);
         return ResponseEntity.status(HttpStatus.OK).body(getPageResponse);
     }
 
     // handler for getting single by id of the particular user
     @GetMapping("/posts/{id}")
     public ResponseEntity<?> getPostById(@PathVariable("id") int id) {
-        PostDTO postDTO = this.postService.getPostById(id).join();
+        PostDTO postDTO = this.postService.getPostById(id);
+        postDTO.setImage(getImageUrl(postDTO.getPostId()));
         return ResponseEntity.ok(postDTO);
     }
 
@@ -73,39 +78,11 @@ public class PostController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
         }
 
-        String imageName = null;
-        if(imageFile != null && !imageFile.isEmpty()) {
-            try {
-                // Validate file size and type
-                if (imageFile.isEmpty()) {
-                    response.put("status", "BAD_REQUEST(400)");
-                    response.put("message", "Image file is required");
-                    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
-                }
-                if (imageFile.getSize() > 10 * 1024 * 1024) { // 10MB in bytes
-                    response.put("status", "BAD_REQUEST(400)");
-                    response.put("message", "Image file size exceeds the maximum limit of 10MB");
-                    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
-                }
-                imageName = this.fileService.uploadFile(path, imageFile);
-            } catch (IOException e) {
-                System.out.println(e.getMessage()); // Log the exception
-                response.put("status", "INTERNAL_SERVER_ERROR(500)");
-                response.put("message", "Image upload failed: " + e.getMessage());
-                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
-            } catch (Exception e) {
-                System.out.println(e.getMessage());  // Log unexpected exceptions
-                response.put("status", "INTERNAL_SERVER_ERROR(500)");
-                response.put("message", "An unexpected error occurred: " + e.getMessage());
-                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
-            }
-        }
-        if(imageFile == null){
-            imageName = "";
-        }
-        postDTO.setImage(imageName);
         // Create the post
         PostDTO savedPost = this.postService.createPost(postDTO, userId, categoryId);
+        if (imageFile != null && !imageFile.isEmpty()) {
+            savedPost = this.postService.uploadPostImage(imageFile, savedPost.getPostId(), userId);
+        }
         return ResponseEntity.status(HttpStatus.CREATED).body(savedPost);
     }
 
@@ -128,37 +105,21 @@ public class PostController {
             response.put("message", error);
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
         }
-        String image = null;
-        if(imageFile != null && !imageFile.isEmpty()){
-            try {
-                image = this.fileService.uploadFile(path, imageFile);
-            } catch (IOException e) {
-                response.put("status", "INTERNAL_SERVER_ERROR(500)");
-                response.put("message", "Image upload failed: " + e.getMessage());
-                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
-            } catch (Exception e) {
-                response.put("status", "INTERNAL_SERVER_ERROR(500)");
-                response.put("message", "An unexpected error occurred: " + e.getMessage());
-                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
-            }
-        }
-        if(imageFile ==  null || imageFile.isEmpty()){
-            image = "";
-        }
-        postDTO.setImage(image);
+
         PostDTO updatePost = this.postService.updatePostField(id, postDTO, userId, categoryId);
+        if (imageFile != null && !imageFile.isEmpty()) {
+            updatePost = this.postService.uploadPostImage(imageFile, updatePost.getPostId(), userId);
+        }
         return ResponseEntity.ok(updatePost);
     }
 
     // handler for deleting the posts
     @DeleteMapping("/posts/{id}")
     public ResponseEntity<?> deletePost(@PathVariable("id") int id) {
-        Map<String, Object> response = new HashMap<>();
-        PostDTO getPost = this.postService.getPostById(id).join();
+
         this.postService.deletePostById(id);
-        response.put("status", "Ok(200)");
-        response.put("message", getPost);
-        return ResponseEntity.status(HttpStatus.NO_CONTENT).body(response);
+
+        return ResponseEntity.status(HttpStatus.OK).body("Post Deleted Successfully");
     }
     // get post of a particular user by using id
     @GetMapping("/posts/user/{userId}")
@@ -169,6 +130,7 @@ public class PostController {
             @RequestParam(value = "sortDir", defaultValue = AppConstant.SORT_DIR, required = false) String sortDir) {
 
         PageResponse<PostDTO> post = this.postService.getPostByUserId(userId, pageNumber, pageSize, sortBy, sortDir);
+        updatePostImageUrl(post);
         return ResponseEntity.status(HttpStatus.OK).body(post);
     }
 
@@ -182,7 +144,8 @@ public class PostController {
 
         PageResponse<PostDTO> post = this.postService.getPostByCategoryId(categoryId, pageNumber, pageSize, sortBy,
                 sortDir);
-
+        log.info("Post {}",post);
+        updatePostImageUrl(post);
         return ResponseEntity.status(HttpStatus.OK).body(post);
     }
 
@@ -190,47 +153,44 @@ public class PostController {
     @GetMapping("/posts/search/{search}")
     public ResponseEntity<?> searchPostByTitle(@PathVariable("search") String search) {
         List<PostDTO> searchedPost = this.postService.searchPost(search);
+        searchedPost.forEach(postDTO -> postDTO.setImage(getImageUrl(postDTO.getPostId())));
         return ResponseEntity.ok(searchedPost);
     }
+
     //handler to save image of post
-    @PostMapping("/posts/{postId}/uploadImage")
+    @PostMapping("/posts/{postId}/uploadImage/user/{userId}")
     public ResponseEntity<?> uploadPostImage(
             @RequestParam("image") MultipartFile imageFile,
-            @PathVariable int postId
+            @PathVariable("postId") int postId,
+            @PathVariable("userId") int userId
     ) {
-        try {
-            // Get the post by ID
-            PostDTO postDTO = this.postService.getPostById(postId).join();
-            // Upload the image file to the specified directory
-            String fileName = this.fileService.uploadFile(path, imageFile);    
-            // Set the image file name in the postDTO
-            postDTO.setImage(fileName);
-            
-            // Update the post with the image
-            PostDTO updatedPost = this.postService.updatePostField(postId, postDTO, postDTO.getUserId(), postDTO.getCategoryId());
-            
-            // Return the updated post with the image
-            return ResponseEntity.status(HttpStatus.OK).body(updatedPost);
-    
-        } catch (IOException e) {
-            // If an IOException occurs, it will be caught here
-            throw new RuntimeException("File upload failed. Please try again.", e);
-        }
+            PostDTO postDTO = this.postService.uploadPostImage(imageFile,postId,userId);
+
+            return ResponseEntity.status(HttpStatus.OK).body(postDTO);
     }
     //handler to get the image form the database
-    @GetMapping(value = "/posts/image/{imageName}",produces = MediaType.IMAGE_JPEG_VALUE)
-    public ResponseEntity<byte[]> getImages(@PathVariable("imageName")String imageName)
+    @GetMapping(value = "/posts/{postId}/fetchPostImage")
+    public ResponseEntity<byte[]> getImages(@PathVariable("postId")Integer postId)
     {
-//       try {
-//
-//
-//        return ResponseEntity.status(HttpStatus.OK).contentType(MediaType.IMAGE_JPEG).body(null);
-//       } catch (FileNotFoundException e) {
-//        throw new RuntimeException("You have inserted wrong imageName.We could not found image with this name: "+imageName);
-//       }catch (IOException e) {
-//            throw new RuntimeException("File download  failed. Please try again.", e);
-//        }
-        return null;
+        PostDTO postDTO = this.postService.getPostById(postId);
+        log.info("PostDTo:{} ",postDTO);
+       try {
+           byte[] b = this.fileService.getFile(postDTO.getImage());
+           MediaType mediaType = this.fileService.determineMediaType(postDTO.getImage());
+        return ResponseEntity.status(HttpStatus.OK).contentType(mediaType).body(b);
+       } catch (IOException e) {
+            throw new ImageInvalidException("Image download  failed. Please try again.");
+        }
+
+    }
+
+    private String getImageUrl(Integer postId){
+        return "/posts/"+postId +"/fetchPostImage";
+    }
+
+    private void updatePostImageUrl(PageResponse<PostDTO> postDTOPageResponse){
+        postDTOPageResponse.getData()
+                .forEach(postDTO -> postDTO.setImage(getImageUrl(postDTO.getPostId())));
     }
 
     

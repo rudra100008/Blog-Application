@@ -27,11 +27,10 @@ public class Post {
     private String content;
     private String image;
     private Date postDate;
-    @DBRef(lazy =true)
     private User user;
-    @DBRef(lazy = true)
+
     private Category category;
-    @DBRef(lazy = true)
+
     private Set<Comment> comments=new HashSet<>();
 
    

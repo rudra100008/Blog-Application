@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -16,11 +17,10 @@ import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api")
-@CrossOrigin("http://localhost:3000/")
+@RequiredArgsConstructor
 public class CategoryController {
+    private final  CategoryService categoryService;
 
-    @Autowired
-    private CategoryService categoryService;
     //create category handler
     @PostMapping("/category")
     public ResponseEntity<?> postCategory(@Valid @RequestBody CategoryDTO categoryDTO,BindingResult result)

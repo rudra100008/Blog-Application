@@ -42,14 +42,14 @@ public class SecurityConfig {
             "/swagger-ui/**",
             "/swagger-ui.html",
             "/swagger-resources/**",
-            "/api/login", "/api/register"
+            "/api/login", "/api/register","/api/posts/**"
     };
 
     @Autowired
     private JWTAuthencticationEntryPoint entryPoint;
 
     @Autowired
-    private JwtAuthencticationFilter filter;
+    private JwtAuthenticationFilter filter;
 
     @Autowired
     private TokenBlackListService tokenBlackListService;

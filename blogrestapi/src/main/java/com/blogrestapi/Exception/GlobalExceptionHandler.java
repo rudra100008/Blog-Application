@@ -131,4 +131,12 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
     }
 
+    @ExceptionHandler(ImageInvalidException.class)
+    public ResponseEntity<?> handleImageInvalidException(ImageInvalidException e){
+        Map<String,Object> response = new HashMap<>();
+        response.put("status", "BAD_REQUEST(400)");
+        response.put("message",e.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    }
+
 }

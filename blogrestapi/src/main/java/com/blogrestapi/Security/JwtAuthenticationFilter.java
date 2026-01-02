@@ -3,7 +3,8 @@ package com.blogrestapi.Security;
 import java.io.IOException;
 
 import com.blogrestapi.Service.TokenBlackListService;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -20,13 +21,13 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 @Component
-public class JwtAuthencticationFilter extends OncePerRequestFilter {
-    @Autowired
-    private UserDetailService userDetailService;
-    @Autowired
-    private JWTTokenHelper jwtTokenHelper;
-    @Autowired
-    private TokenBlackListService tokenBlackListService;
+@RequiredArgsConstructor
+@Slf4j
+public class JwtAuthenticationFilter extends OncePerRequestFilter {
+    private final  UserDetailService userDetailService;
+    private final JWTTokenHelper jwtTokenHelper;
+    private final  TokenBlackListService tokenBlackListService;
+
     @Override
     protected void doFilterInternal(
         @NonNull HttpServletRequest request, 
@@ -34,11 +35,12 @@ public class JwtAuthencticationFilter extends OncePerRequestFilter {
         @NonNull FilterChain filterChain)
             throws ServletException, IOException {
       // 1. Get the token from the request header
-       final String authorizationHeader=request.getHeader("Authorization");
+       final String authorizationHeader = request.getHeader("Authorization");
        // the token we get from the request.getHeader() is in this format->Bearer ASJDLAJDK
        String username=null;
        String token=null;
-       if (authorizationHeader !=null && authorizationHeader.startsWith("Bearer ")) {
+
+       if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
            token= authorizationHeader.substring(7);
            if (tokenBlackListService.isTokenBlackListed(token)) {
                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
@@ -66,7 +68,7 @@ public class JwtAuthencticationFilter extends OncePerRequestFilter {
           
        }else{
         filterChain.doFilter(request, response);
-        System.out.println("jwt token is null or doesnot starts with bearer");
+        System.out.println("Jwt token is null or doesn't starts with Bearer");
         return;
        }
        //here securityContextHolder holds the securityContext it means it hold the details about the user 

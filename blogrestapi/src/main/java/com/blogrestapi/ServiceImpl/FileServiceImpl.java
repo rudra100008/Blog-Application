@@ -64,15 +64,14 @@ public class FileServiceImpl  implements FileService{
         }
     }
 
+    @Override
     public MediaType determineMediaType(String filename) {
-
-        String lowerfileName = filename.toLowerCase();
-        if(lowerfileName.endsWith(".png")) return MediaType.IMAGE_PNG;
-        if(lowerfileName.endsWith(".gif")) return MediaType.IMAGE_GIF;
-        if(lowerfileName.endsWith(".webp")) return MediaType.parseMediaType("image/webp");
+        String lowerfilename = filename.toLowerCase();
+        if(lowerfilename.endsWith(".png")) return MediaType.IMAGE_PNG;
+        if(lowerfilename.endsWith(".gif")) return MediaType.IMAGE_GIF;
+        if(lowerfilename.endsWith(".webp")) return MediaType.parseMediaType("image/webp");
         return MediaType.IMAGE_JPEG;
     }
-
 
 
     private void validateImage(MultipartFile imageFile){

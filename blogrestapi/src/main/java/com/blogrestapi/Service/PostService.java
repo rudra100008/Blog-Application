@@ -8,14 +8,15 @@ import org.springframework.stereotype.Service;
 
 import com.blogrestapi.DTO.PageResponse;
 import com.blogrestapi.DTO.PostDTO;
+import org.springframework.web.multipart.MultipartFile;
 
 @Service
 public interface PostService {
 
     //get all post
-    CompletableFuture<PageResponse<PostDTO>> getAllPost(int pageNumber, int pageSize, String sortBy, String sortDir);
+    PageResponse<PostDTO> getAllPosts(int pageNumber, int pageSize, String sortBy, String sortDir);
     //get post by id
-    CompletableFuture<PostDTO> getPostById(int id);
+    PostDTO getPostById(int id);
     //save the post
     PostDTO createPost(PostDTO postDTO,int userId,int categoryId);
     //delete the post
@@ -28,4 +29,6 @@ public interface PostService {
     PageResponse<PostDTO> getPostByUserId(int userId,int pageNumber,int pageSize,String sortBy,String sortDir);
     //to get the post by cateforyId
     PageResponse<PostDTO> getPostByCategoryId(int categoryId,int pageNumber,int pageSize,String sortBy,String sortDir);
+
+    PostDTO uploadPostImage(MultipartFile imageFile,Integer postId,Integer userId);
 }
