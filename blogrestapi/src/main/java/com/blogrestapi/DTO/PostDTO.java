@@ -24,7 +24,10 @@ public class PostDTO {
     @NotBlank(message = "Content is mandatory")
     @Size(min = 10, message = "Content must be at least 10 characters long")
     private String content;
-    private String image;
+
+    private String image; // to store local Dir
+    private String imageUrl; // to store url of cloud
+    private String publicId;
 
     // @NotNull(message = "Post date cannot be null")
     // @PastOrPresent(message = "Post date must be in the past or present")

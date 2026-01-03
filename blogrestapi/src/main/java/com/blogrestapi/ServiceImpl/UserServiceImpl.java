@@ -7,9 +7,12 @@ import java.util.List;
 
 import java.util.stream.Collectors;
 
+import com.blogrestapi.DTO.CloudinaryResponse;
+import com.blogrestapi.DTO.PostDTO;
 import com.blogrestapi.Exception.ImageInvalidException;
 import com.blogrestapi.Exception.UnauthorizedException;
 import com.blogrestapi.Security.AuthUtils;
+import com.blogrestapi.Service.CloudFileService;
 import com.blogrestapi.Service.FileService;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
@@ -39,6 +42,7 @@ public class UserServiceImpl implements UserService {
     private final  RoleDao roleDao;
     private final FileService fileService;
     private final AuthUtils authUtils;
+    private final CloudFileService cloudFileService;
     @Value("${project.users.image}")
     private  static String FILE_PATH;
 
@@ -148,6 +152,27 @@ public class UserServiceImpl implements UserService {
         }catch (IOException e){
             throw new ImageInvalidException("Image fetching failed.");
         }
+    }
+
+    @Override
+    public UserDTO uploadImageInCloud(MultipartFile imageFile, Integer userId) {
+        User user = validateUser(userId);
+        if ( imageFile == null || imageFile.isEmpty()){
+            throw new ResourceNotFoundException("Post Image is empty or null.");
+        }
+        try{
+            if (user.getImageUrl() != null && !user.getImageUrl().isEmpty() && user.getPublicId() != null && !user.getPublicId().isEmpty()){
+                this.cloudFileService.deleteFile(user.getPublicId());
+            }
+            CloudinaryResponse cloudinaryResponse = this.cloudFileService.uploadFileWithDetails(imageFile);
+            user.setImageUrl(cloudinaryResponse.getSecureUrl());
+            user.setPublicId(cloudinaryResponse.getPublicId());
+
+        }catch (IOException e){
+            throw new ImageInvalidException("Failed to upload user image: "+ e.getLocalizedMessage());
+        }
+        User savedUser = this.userDao.save(user);
+        return this.modelMapper.map(savedUser,UserDTO.class);
     }
 
     @Override

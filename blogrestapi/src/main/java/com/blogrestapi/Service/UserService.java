@@ -2,6 +2,7 @@ package com.blogrestapi.Service;
 
 import java.util.List;
 
+import com.blogrestapi.DTO.PostDTO;
 import org.springframework.stereotype.Service;
 
 import com.blogrestapi.DTO.UserDTO;
@@ -18,4 +19,6 @@ public interface UserService {
     void deleteUserById(int id);
     UserDTO uploadImage(MultipartFile file,Integer userId);
     byte[] fetchUserImage(Integer userId);
+
+    UserDTO uploadImageInCloud(MultipartFile file,Integer userId);
 }

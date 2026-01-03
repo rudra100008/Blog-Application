@@ -25,7 +25,9 @@ public class Post {
     
     private String postTitle;
     private String content;
-    private String image;
+    private String image; // to store local Dir
+    private String imageUrl; // to store url of cloud
+    private String publicId;
     private Date postDate;
     private User user;
 

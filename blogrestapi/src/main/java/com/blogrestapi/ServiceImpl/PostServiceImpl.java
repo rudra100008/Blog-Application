@@ -6,8 +6,10 @@ import java.util.Date;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import com.blogrestapi.Config.AppConstant;
+import com.blogrestapi.DTO.CloudinaryResponse;
 import com.blogrestapi.Exception.ImageInvalidException;
 import com.blogrestapi.Security.AuthUtils;
+import com.blogrestapi.Service.CloudFileService;
 import com.blogrestapi.Service.FileService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -49,6 +51,7 @@ public class PostServiceImpl implements PostService {
     @Value("${project.post.image}")
     private String postImagePath;
     private final AuthUtils authUtils;
+    private final CloudFileService cloudFileService;
 
     private static final  String  CACHE_ALL_POSTS ="cacheAllPosts";
     private static final String CACHE_POST = "cachePost";
@@ -105,6 +108,12 @@ public class PostServiceImpl implements PostService {
         PostDTO post = getPostById(id);
         if(post.getImage() != null && !post.getImage().isEmpty()){
            deletePostImage(post.getPostId());
+           try{
+               this.cloudFileService.deleteFile(post.getPublicId());
+           }catch (IOException e){
+               log.error("Failed to delete image in Cloudinary: {}", e.getMessage());
+               throw new ImageInvalidException("Failed to delete image in Cloudinary");
+           }
         }
         this.postDao.deleteById(id);
     }
@@ -189,12 +198,43 @@ public class PostServiceImpl implements PostService {
                 deletePostImage(post.getPostId());
             }
             String completePath = this.fileService.uploadFile(postImagePath,imageFile);
+
             post.setImage(completePath);
         }catch(IOException e){
             throw new ImageInvalidException("Post image uploading failed.");
         }
         Post updatedPost = this.postDao.save(post);
         return this.modelMapper.map(updatedPost,PostDTO.class);
+    }
+
+    @Override
+    public PostDTO uploadPostImageInCloud(MultipartFile imageFile, Integer postId, Integer userId)throws  IOException {
+        User user = validateUser(userId);
+        if ( imageFile == null || imageFile.isEmpty()){
+            throw new ResourceNotFoundException("Post Image is empty or null.");
+        }
+        Post post = getPostByIdAndUser(postId,user);
+        try{
+            if(post.getPublicId() != null && !post.getPublicId().isEmpty()){
+                cloudFileService.deleteFile(post.getPublicId());
+            }
+            CloudinaryResponse cloudinaryResponse = this.cloudFileService.uploadFileWithDetails(imageFile);
+            post.setPublicId(cloudinaryResponse.getPublicId());
+            post.setImageUrl(cloudinaryResponse.getSecureUrl());
+        }catch(IOException e){
+            throw new ImageInvalidException("Post image uploading failed.");
+        }
+        Post updatedPost = this.postDao.save(post);
+        return this.modelMapper.map(updatedPost,PostDTO.class);
+
+    }
+
+    @Override
+    public PostDTO getPostImageInCloud(Integer postId, Integer userId) throws  IOException{
+        User user = validateUser(userId);
+        Post post = getPostByIdAndUser(postId,user);
+
+        return null;
     }
 
 

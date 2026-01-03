@@ -9,6 +9,7 @@ import com.blogrestapi.Entity.User;
 import com.blogrestapi.Exception.ResourceNotFoundException;
 import com.blogrestapi.ServiceImpl.FileServiceImpl;
 import com.blogrestapi.ValidationGroup.CreateUserGroup;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -32,21 +33,16 @@ import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api")
+@RequiredArgsConstructor
 public class AuthController {
-    @Autowired
-    private JWTTokenHelper jwtTokenHelper;
-    @Autowired
-    private AuthenticationManager authenticationManager;
-    @Autowired
-    private UserDetailService userDetailService;
-    @Autowired
-    private UserService userService;
-    @Autowired
-    private UserDao userDao;
+    private final JWTTokenHelper jwtTokenHelper;
+    private final AuthenticationManager authenticationManager;
+    private final UserDetailService userDetailService;
+    private final  UserService userService;
+    private final UserDao userDao;
     @Value("${project.users.image}")
     private String imagePath;
-    @Autowired
-    private FileServiceImpl fileService;
+    private final FileServiceImpl fileService;
 
     @PostMapping("/login")
     public ResponseEntity<?> createToken(@RequestBody JwtRequest request) {
@@ -86,9 +82,7 @@ public class AuthController {
         }
 
         UserDTO saveUser = this.userService.registerNewUser(userDTO);
-        UserDTO updatedUser = this.userService.uploadImage(imageFile,saveUser.getId());
-
-        updatedUser.setImage(getUserImagePath(updatedUser.getId()));
+        UserDTO updatedUser = this.userService.uploadImageInCloud(imageFile, saveUser.getId());
         response.put("message", "User inserted successfully");
         response.put("status", "CREATED(201)");
         response.put("data", updatedUser);

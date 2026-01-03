@@ -1,6 +1,7 @@
 package com.blogrestapi.Service;
 
 
+import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
@@ -31,4 +32,8 @@ public interface PostService {
     PageResponse<PostDTO> getPostByCategoryId(int categoryId,int pageNumber,int pageSize,String sortBy,String sortDir);
 
     PostDTO uploadPostImage(MultipartFile imageFile,Integer postId,Integer userId);
+
+    PostDTO uploadPostImageInCloud(MultipartFile imageFile,Integer postId,Integer userId)throws IOException;
+
+    PostDTO getPostImageInCloud(Integer postId,Integer userId)throws IOException;
 }

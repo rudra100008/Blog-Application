@@ -11,13 +11,16 @@ import java.util.List;
 import java.util.Map;
 
 
+import com.blogrestapi.DTO.CloudinaryResponse;
 import com.blogrestapi.Dao.UserDao;
 import com.blogrestapi.Entity.User;
 import com.blogrestapi.Exception.ResourceNotFoundException;
 import com.blogrestapi.Security.UserDetailService;
+import com.blogrestapi.Service.CloudFileService;
 import com.blogrestapi.ServiceImpl.FileServiceImpl;
 import com.blogrestapi.ValidationGroup.UpdateUserGroup;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -36,6 +39,7 @@ import com.blogrestapi.Service.UserService;
 import jakarta.validation.Valid;
 import org.springframework.web.multipart.MultipartFile;
 
+@Slf4j
 @RestController
 @RequestMapping("/api")
 @CrossOrigin("http://localhost:3000")
@@ -46,6 +50,7 @@ public class BlogController {
     @Value("${project.users.image}")
     private  String imagePath;
     private final UserDao userDao;
+    private final CloudFileService cloudFileService;
 
     // this handler get all the user data from the database
     @GetMapping("/users")
@@ -72,7 +77,6 @@ public class BlogController {
     @GetMapping("/users/{id}")
     public ResponseEntity<?> getUserById(@PathVariable("id") int id) {
         UserDTO user = this.userService.getUserById(id);
-        user.setImage(getUserImagePath(user.getId()));
         return ResponseEntity.ok(user);
     }
     @PreAuthorize("hasRole('ADMIN')")
@@ -88,7 +92,7 @@ public class BlogController {
     }
 
     @PutMapping("/users/{id}")
-    public ResponseEntity<?> putUserById(@PathVariable("id") int id,@Validated(UpdateUserGroup.class) @RequestPart("user") UserDTO user,
+    public ResponseEntity<?> updateUserDetails(@PathVariable("id") int id,@Validated(UpdateUserGroup.class) @RequestPart("user") UserDTO user,
                                          BindingResult result,
                                          @RequestPart(value="image",required = false) MultipartFile imageFile) {
 
@@ -115,41 +119,28 @@ public class BlogController {
             response.put("message", fieldError);
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
         }
-        String image= null;
-        if(imageFile != null && !imageFile.isEmpty()) {
-            try {
-                image = this.fileService.uploadFile(imagePath, imageFile);
-            } catch (IOException e) {
-                // Log the exception
-                response.put("status", "INTERNAL_SERVER_ERROR(500)");
-                response.put("message", "Image upload failed: " + e.getMessage());
-                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
-            } catch (Exception e) {
-                // Log unexpected exceptions
-                response.put("status", "INTERNAL_SERVER_ERROR(500)");
-                response.put("message", "An unexpected error occurred: " + e.getMessage());
-                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
-            }
-        }
-        if(imageFile ==  null || imageFile.isEmpty()){
-            image = "";
-        }
-        user.setImage(image);
+
+
+
+
         UserDTO updatedUser = this.userService.updateUserById(id, user);
+        if (imageFile != null && !imageFile.isEmpty()){
+            updatedUser = this.userService.uploadImageInCloud(imageFile, updatedUser.getId());
+        }
         return ResponseEntity.ok(updatedUser);
     }
     @PostMapping(path = "/users/{id}/uploadImage")
-    public ResponseEntity<?> postImage(@PathVariable("id")int id, @RequestPart("userImage") MultipartFile imageFile){
+    public ResponseEntity<?> uploadUserImage(@PathVariable("id")int id, @RequestPart("userImage") MultipartFile imageFile){
        UserDTO userDTO= this.userService.getUserById(id);
        String fileName=null;
        try {
             fileName=this.fileService.uploadFile(imagePath,imageFile);
 
        }catch(IOException io){
-           System.out.println(io.getMessage());
+           log.info("Error in uploading image: {} ",io.getLocalizedMessage());
            return  ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(io.getLocalizedMessage());
        }catch (Exception e){
-           System.out.println(e.getMessage());
+           log.info("Error in uploading image: {} ",e.getLocalizedMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
        }
        userDTO.setImage(fileName);

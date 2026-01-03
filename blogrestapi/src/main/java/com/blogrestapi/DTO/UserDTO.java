@@ -32,6 +32,8 @@ public class UserDTO {
     @Size(groups = CreateUserGroup.class , min=3,max=16,message = "Password should have less than 3 and greater than 16 characters")
     private String password;
     private String image;
+    private String imageUrl;
+    private String publicId;
     @NotEmpty(groups = CreateUserGroup.class,message = "Required!")
     @Pattern(groups = CreateUserGroup.class,regexp = "^\\d{10}$",message = "Phone number must  have 10 digits")
     private String phoneNumber;
