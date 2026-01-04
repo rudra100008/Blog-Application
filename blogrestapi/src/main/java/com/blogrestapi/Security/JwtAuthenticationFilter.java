@@ -56,13 +56,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             username=this.jwtTokenHelper.getUsernameFromToken(token);
            }catch(IllegalArgumentException i)
            {
-            System.out.println("unable to get the jwt token");
+            log.info("unable to get the jwt token");
            }catch(ExpiredJwtException e){
-            System.out.println("Jwt token has expired");
+            log.error("Jwt token has expired");
+               sendErrorResponse(response,"token_expired","Token has expired. Please login again",HttpServletResponse.SC_UNAUTHORIZED);
            }catch(MalformedJwtException mal){
-            System.out.println("invalid jwt");
+            log.error("invalid jwt");
            } catch (Exception e) {
-             System.out.println(e.getLocalizedMessage());
+             log.error(e.getLocalizedMessage());
            }
 
           
@@ -95,6 +96,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
        }
        filterChain.doFilter(request, response);
 
+    }
+
+    //helper method
+    private void sendErrorResponse(HttpServletResponse response,String error ,String message,int status) throws  IOException{
+
+        response.setStatus(status);
+        response.setContentType("application/json");
+        response.getWriter().write(String.format("{\"error\" : \"%s\" , \"message\" : \"%s\"} ",error,message));
     }
     
 }

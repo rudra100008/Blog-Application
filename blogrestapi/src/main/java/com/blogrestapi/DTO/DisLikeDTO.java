@@ -8,7 +8,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class DisLikeDTO {
-    private int id;
-    private int userId;
-    private int postId;
+    private Integer id;
+    private Integer userId;
+    private Integer postId;
 }

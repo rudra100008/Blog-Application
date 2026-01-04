@@ -7,6 +7,7 @@ import java.util.List;
 
 import java.util.stream.Collectors;
 
+import com.blogrestapi.Config.CacheConfig;
 import com.blogrestapi.DTO.CloudinaryResponse;
 import com.blogrestapi.DTO.PostDTO;
 import com.blogrestapi.Exception.ImageInvalidException;
@@ -15,9 +16,13 @@ import com.blogrestapi.Security.AuthUtils;
 import com.blogrestapi.Service.CloudFileService;
 import com.blogrestapi.Service.FileService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -30,10 +35,12 @@ import com.blogrestapi.Entity.User;
 import com.blogrestapi.Exception.AlreadyExistsException;
 import com.blogrestapi.Exception.ResourceNotFoundException;
 import com.blogrestapi.Service.UserService;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class UserServiceImpl implements UserService {
     private  final UserDao userDao;
     private final ModelMapper modelMapper;
@@ -43,23 +50,33 @@ public class UserServiceImpl implements UserService {
     private final FileService fileService;
     private final AuthUtils authUtils;
     private final CloudFileService cloudFileService;
+
     @Value("${project.users.image}")
-    private  static String FILE_PATH;
+    private  String FILE_PATH;
 
     @Override
+    @Cacheable(value = CacheConfig.CACHE_USERS)
     public List<UserDTO> getUsers() {
+        log.debug("Fetching all users from database");
         return this.userDao.findAll().stream()
-         .map(user->modelMapper.map(user, UserDTO.class))
-        .collect(Collectors.toList());
+                .map(user->modelMapper.map(user, UserDTO.class))
+                .collect(Collectors.toList());
     }
 
     @Override
+    @Cacheable(value = CacheConfig.CACHE_USER_BY_ID, key = "#id", unless = "#result == null")
     public UserDTO getUserById(int id) {
+        log.debug("Fetching user from database with ID: {}", id);
         return this.userDao.findById(id).map(user->modelMapper.map(user,UserDTO.class))
-        .orElseThrow(()->new ResourceNotFoundException("User not found with id: "+id));
+                .orElseThrow(()->new ResourceNotFoundException("User not found with id: "+id));
     }
 
     @Override
+    @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = CacheConfig.CACHE_USERS, allEntries = true),
+            @CacheEvict(value = CacheConfig.CACHE_USER_BY_USERNAME, allEntries = true)
+    })
     public UserDTO createUser(UserDTO userDTO) {
         userDTO.setId((int) this.sequence.generateSequence("user_sequence"));//this generates news id
         if (this.userDao.existsByUsername(userDTO.getUsername())) {
@@ -85,32 +102,33 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = CacheConfig.CACHE_USER_BY_ID, key = "#id"),
+            @CacheEvict(value = CacheConfig.CACHE_USERS, allEntries = true),
+            @CacheEvict(value = CacheConfig.CACHE_USER_BY_USERNAME, allEntries = true)
+    })
     public UserDTO updateUserById(int id, UserDTO userDTO) {
-        User user=this.userDao.findById(id).orElseThrow(()->new ResourceNotFoundException("User not found with id: "+id)); 
-        if (!user.getUsername().equals(userDTO.getUsername()) && this.userDao.existsByUsername(userDTO.getUsername())  ) {
-            throw new AlreadyExistsException("Username is already used");
+        User user=this.userDao.findById(id).orElseThrow(()->new ResourceNotFoundException("User not found with id: "+id));
+        if (userDTO.getUsername() != null
+                && !user.getUsername().equals(userDTO.getUsername())) {
+            if (this.userDao.existsByUsername(userDTO.getUsername())) {
+                throw new AlreadyExistsException("Username is already used");
+            }
+            user.setUsername(userDTO.getUsername());
         }
-        if ( !user.getEmail().equals(userDTO.getEmail()) &&  this.userDao.existsByEmail(userDTO.getEmail())) {
-            throw new AlreadyExistsException("Email is already used");
+        if(userDTO.getEmail() != null
+                && !user.getEmail().equals(userDTO.getEmail())){
+            if(this.userDao.existsByEmail(userDTO.getEmail())){
+                throw new AlreadyExistsException("Email is already used.");
+            }
+            user.setEmail(userDTO.getEmail());
         }
         if ( user.getRole()==null ) {
             Role role=new Role(2,"ROLE_USER");
             user.setRole(role);
         }
-       if(userDTO.getImage() != null && !userDTO.getImage().isEmpty() ){
-           user.setImage(userDTO.getImage());
-       }else{
-          user.setImage(user.getImage());
-       }
-        if(!userDTO.getEmail().isEmpty()){
-            user.setEmail(userDTO.getEmail());
-        }
-        if(!userDTO.getUsername().isEmpty()) {
-            user.setUsername(userDTO.getUsername());
-        }
-        if(userDTO.getPassword() != null && !userDTO.getPassword().isEmpty()) {
-            user.setPassword(encoder.encode(userDTO.getPassword()));
-        }
+
         if(!userDTO.getPhoneNumber().isEmpty()){
             user.setPhoneNumber(userDTO.getPhoneNumber());
         }
@@ -124,6 +142,13 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = CacheConfig.CACHE_USER_BY_ID, key = "#id"),
+            @CacheEvict(value = CacheConfig.CACHE_USERS, allEntries = true),
+            @CacheEvict(value = CacheConfig.CACHE_USER_BY_USERNAME, allEntries = true),
+            @CacheEvict(value = CacheConfig.CACHE_POSTS_BY_USER, key = "#id")
+    })
     public void deleteUserById(int id) {
         if (!this.userDao.existsById(id)) {
             throw new ResourceNotFoundException("User not found by id: "+id);
@@ -132,9 +157,11 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Transactional
     public UserDTO uploadImage(MultipartFile file, Integer userId) {
+        User user = this.userDao.findById(userId)
+                .orElseThrow(()->  new ResourceNotFoundException("user not found"));
         try{
-            User user = validateUser(userId);
             String completePath = this.fileService.uploadFile(FILE_PATH,file);
             user.setImage(completePath);
             User savedUser = this.userDao.save(user);
@@ -145,6 +172,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Transactional
     public byte[] fetchUserImage(Integer userId) {
         User user = validateUser(userId);
         try{
@@ -155,10 +183,12 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Transactional
     public UserDTO uploadImageInCloud(MultipartFile imageFile, Integer userId) {
-        User user = validateUser(userId);
+        User user = this.userDao.findById(userId)
+                .orElseThrow(()->  new ResourceNotFoundException("user not found"));
         if ( imageFile == null || imageFile.isEmpty()){
-            throw new ResourceNotFoundException("Post Image is empty or null.");
+            throw new ResourceNotFoundException("User Image is empty or null.");
         }
         try{
             if (user.getImageUrl() != null && !user.getImageUrl().isEmpty() && user.getPublicId() != null && !user.getPublicId().isEmpty()){
@@ -178,17 +208,7 @@ public class UserServiceImpl implements UserService {
     @Override
     public UserDTO registerNewUser(UserDTO userDTO) {
         User user=this.modelMapper.map(userDTO, User.class);
-        if (this.userDao.existsByUsername(user.getUsername())) {
-            throw new AlreadyExistsException("Username is already used");
-        }
-        if (this.userDao.existsByEmail(user.getEmail())) {
-            throw new AlreadyExistsException("Email is already used");
-        }
-        if(user.getImage()== null){
-            user.setImage("default.jpg");
-        }else {
-            user.setImage(user.getImage());
-        }
+        validateUserDataInput(user);
         user.setId((int)this.sequence.generateSequence("user_sequence"));
         user.setPassword(this.encoder.encode(user.getPassword()));
         user.setEnable(true);
@@ -208,6 +228,19 @@ public class UserServiceImpl implements UserService {
             return loggedInUser;
         }else {
             throw  new UnauthorizedException("User is not authorized for this service.");
+        }
+    }
+
+
+    private void validateUserDataInput(User user){
+        if (this.userDao.existsByUsername(user.getUsername())) {
+            throw new AlreadyExistsException("username is already used");
+        }
+        if (this.userDao.existsByEmail(user.getEmail())) {
+            throw new AlreadyExistsException("email is already used");
+        }
+        if (this.userDao.existsByPhoneNumber(user.getPhoneNumber())){
+            throw  new AlreadyExistsException("Phone number already used.");
         }
     }
 

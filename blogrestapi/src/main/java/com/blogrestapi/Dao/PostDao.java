@@ -18,8 +18,10 @@ public interface PostDao extends MongoRepository<Post, Integer> {
     Page<Post> findPostByUser(User user, Pageable pageable);
     List<Post> findPostByUser(User user);
 
+    @Query("{ 'user._id': ?0 }")
+    Page<Post> findPostByUserId(int userId,Pageable pageable);
     // Change this method
-    @Query("{ 'category.$id': ?0 }")
+    @Query("{ 'category.categoryId': ?0 }")
     Page<Post> findPostByCategoryId(int categoryId, Pageable pageable);
 
     List<Post> findByPostTitleContainingIgnoreCase(String postTitle);

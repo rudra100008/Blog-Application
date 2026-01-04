@@ -43,12 +43,13 @@ public class CommentController {
     public ResponseEntity<?> deleteComment(@PathVariable int commentId) {
         CommentDTO commentDTO = this.commentService.findCommentById(commentId);
         this.commentService.deleteComment(commentId);
-        return ResponseEntity.status(HttpStatus.NO_CONTENT).body(commentDTO); // 204 No Content
+        return ResponseEntity.status(HttpStatus.OK).body(commentDTO);
     }
+
     @GetMapping("/comments/post/{postId}")
     public ResponseEntity<?> getComments(@PathVariable(value = "postId")int postId,
                                          @RequestParam(value = "pageNumber",required = false,defaultValue = AppConstant.PAGE_NUMBER)int pageNumber,
-                                         @RequestParam(value = "pageNumber",required = false,defaultValue = AppConstant.PAGE_SIZE)int pageSize,
+                                         @RequestParam(value = "pageSize",required = false,defaultValue = AppConstant.PAGE_SIZE)int pageSize,
                                          @RequestParam(value = "sortBy",required = false,defaultValue ="commentId")String sortBy,
                                          @RequestParam(value = "sortDir", defaultValue = AppConstant.SORT_DIR, required = false) String sortDir){
         PageResponse<CommentDTO> getComment =this.commentService.getCommentByPostId(postId,pageNumber,pageSize,sortBy,sortDir);

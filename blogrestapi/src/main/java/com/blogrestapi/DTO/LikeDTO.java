@@ -8,7 +8,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class LikeDTO {
-    private int id;
-    private int userId;
-    private int postId;
+    private Integer id;
+    private Integer userId;
+    private Integer postId;
 }

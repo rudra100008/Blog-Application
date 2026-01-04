@@ -1,6 +1,7 @@
 package com.blogrestapi.Exception;
 
 import java.security.SignatureException;
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -17,126 +18,155 @@ import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.MalformedJwtException;
 import io.jsonwebtoken.UnsupportedJwtException;
+import org.springframework.web.context.request.WebRequest;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<?> handleException(Exception e) {
-        Map<String, Object> response = new HashMap<>();
-        response.put("status", "INTERNAL_SERVER_ERROR(500)");
-        response.put("message", "Something went wrong: " + e.getMessage());
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+    public ResponseEntity<?> handleException(Exception e,WebRequest request) {
+        e.printStackTrace();
+       return buildExceptionResponse(
+               HttpStatus.INTERNAL_SERVER_ERROR,
+               String.format("Internal Server Error: %s",e.getMessage()),
+               request
+       );
     }
 
     @ExceptionHandler(ResourceNotFoundException.class)
-    public ResponseEntity<?> handlerUserNotFound(ResourceNotFoundException ex) {
-        Map<String, Object> response = new HashMap<>();
-        response.put("status", "NOT_FOUND(404)");
-        response.put("message", ex.getMessage());
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+    public ResponseEntity<?> handlerUserNotFound(ResourceNotFoundException e,WebRequest request) {
+        return buildExceptionResponse(
+                HttpStatus.NOT_FOUND,
+                String.format(e.getMessage()),
+                request
+        );
     }
 
     @ExceptionHandler(AlreadyExistsException.class)
-    public ResponseEntity<?> handleAlreadyExist(AlreadyExistsException al) {
-        Map<String, String> response = new HashMap<>();
-        response.put("status", "BAD_REQUEST(400)");
-        response.put("message", al.getMessage());
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    public ResponseEntity<?> handleAlreadyExist(AlreadyExistsException e,WebRequest request) {
+        return buildExceptionResponse(
+                HttpStatus.BAD_REQUEST,
+                String.format(e.getMessage()),
+                request
+        );
     }
 
     @ExceptionHandler(DataIntegrityViolationException.class)
-    public ResponseEntity<?> handleDataIntegrityViolation(DataIntegrityViolationException ex) {
-        Map<String, Object> response = new HashMap<>();
-        response.put("status", "CONFLICT(409)");
-        response.put("message", "Invalid user input");
-        return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
+    public ResponseEntity<?> handleDataIntegrityViolation(DataIntegrityViolationException ex,WebRequest request) {
+
+        return buildExceptionResponse(
+                HttpStatus.CONFLICT,
+                ex.getMessage(),
+                request
+        );
     }
 
     @ExceptionHandler(RuntimeException.class)
-    public ResponseEntity<?> handleRuntimeException(RuntimeException ex) {
-        Map<String, Object> response = new HashMap<>();
-        response.put("status", "INTERNAL_SERVER_ERROR(500)");
-        response.put("message", ex.getMessage());
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+    public ResponseEntity<?> handleRuntimeException(RuntimeException e,WebRequest request) {
+        return buildExceptionResponse(
+                HttpStatus.BAD_REQUEST,
+                e.getMessage(),
+                request
+        );
     }
 
     @ExceptionHandler(AuthorizationDeniedException.class)
-    public ResponseEntity<?> handleUnauthorizedException(AuthorizationDeniedException ex) {
-        Map<String, Object> response = new HashMap<>();
-        response.put("status", "UNAUTHORIZED(401)");
-        response.put("message", ex.getMessage());
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+    public ResponseEntity<?> handleUnauthorizedException(AuthorizationDeniedException ex,WebRequest request) {
+      return buildExceptionResponse(
+              HttpStatus.UNAUTHORIZED,
+              ex.getMessage(),
+              request
+      );
     }
 
     @ExceptionHandler(DisabledException.class)
-    public ResponseEntity<?> handleDisabledException(DisabledException ex) {
-        Map<String, Object> response = new HashMap<>();
-        response.put("status", "BAD_REQUEST(400)");
-        response.put("message", "User is disabled");
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    public ResponseEntity<?> handleDisabledException(DisabledException e,WebRequest request) {
+        return buildExceptionResponse(
+                HttpStatus.BAD_REQUEST,
+                "User is disabled",
+                request
+        );
     }
 
     @ExceptionHandler(JwtException.class)
-    public ResponseEntity<?> handleJwtException(JwtException ex) {
-        Map<String, Object> response = new HashMap<>();
-        response.put("status", "BAD_REQUEST(400)");
-        response.put("message", "Invalid JWT token: " + ex.getMessage());
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    public ResponseEntity<?> handleJwtException(JwtException e,WebRequest request) {
+        return buildExceptionResponse(
+                HttpStatus.UNAUTHORIZED,
+                "Invalid jwt token",
+                request
+        );
     }
 
     @ExceptionHandler(ExpiredJwtException.class)
-    public ResponseEntity<?> handleExpiredJwtException(ExpiredJwtException ex) {
-        Map<String, Object> response = new HashMap<>();
-        response.put("status", "UNAUTHORIZED(401)");
-        response.put("message", "JWT token has expired: " + ex.getMessage());
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+    public ResponseEntity<?> handleExpiredJwtException(ExpiredJwtException  e,WebRequest request) {
+        return buildExceptionResponse(
+                HttpStatus.UNAUTHORIZED,
+                "Token is expired",
+                request
+        );
     }
-
-    @ExceptionHandler(SignatureException.class)
-    public ResponseEntity<?> handleSignatureException(SignatureException ex) {
-        Map<String, Object> response = new HashMap<>();
-        response.put("status", "UNAUTHORIZED(401)");
-        response.put("message", "JWT signature validation failed: " + ex.getMessage());
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+    @ExceptionHandler(SecurityException.class)
+    public ResponseEntity<?> handleSecurityException(SecurityException e,WebRequest request){
+        return buildExceptionResponse(
+                HttpStatus.UNAUTHORIZED,
+                e.getMessage(),
+                request
+        );
     }
 
     @ExceptionHandler(MalformedJwtException.class)
-    public ResponseEntity<?> handleMalformedJwtException(MalformedJwtException ex) {
-        Map<String, Object> response = new HashMap<>();
-        response.put("status", "BAD_REQUEST(400)");
-        response.put("message", "Invalid JWT token format: " + ex.getMessage());
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    public ResponseEntity<?> handleMalformedJwtException(MalformedJwtException e,WebRequest request) {
+        return buildExceptionResponse(
+                HttpStatus.BAD_REQUEST,
+                String.format("Invalid JWT token format: %s",e.getMessage()),
+                request
+        );
     }
 
     @ExceptionHandler(UnsupportedJwtException.class)
-    public ResponseEntity<?> handleUnsupportedJwtException(UnsupportedJwtException ex) {
-        Map<String, Object> response = new HashMap<>();
-        response.put("status", "BAD_REQUEST(400)");
-        response.put("message", "JWT token is unsupported: " + ex.getMessage());
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    public ResponseEntity<?> handleUnsupportedJwtException(UnsupportedJwtException e,WebRequest request) {
+        return buildExceptionResponse(
+                HttpStatus.BAD_REQUEST,
+                String.format("JWT token is unsupported: %s",e.getMessage()),
+                request
+        );
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<?> handleIllegalArgumentException(IllegalArgumentException ex) {
-        Map<String, Object> response = new HashMap<>();
-        response.put("status", "BAD_REQUEST(400)");
-        response.put("message", "JWT claims string is empty: " + ex.getMessage());
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    public ResponseEntity<?> handleIllegalArgumentException(IllegalArgumentException e,WebRequest request) {
+        return buildExceptionResponse(
+                HttpStatus.BAD_REQUEST,
+                e.getMessage(),
+                request
+        );
     }
     @ExceptionHandler(BadCredentialsException.class)
-    public ResponseEntity<?> handleBadCredentials(BadCredentialsException bad){
-        Map<String ,Object> response =new HashMap<>();
-        response.put("status","401");
-        response.put("message","Invalid username or password");
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+    public ResponseEntity<?> handleBadCredentials(BadCredentialsException bad,WebRequest request){
+
+        return buildExceptionResponse(
+                HttpStatus.UNAUTHORIZED,
+                "Invalid username or password",
+                request
+        );
     }
 
     @ExceptionHandler(ImageInvalidException.class)
-    public ResponseEntity<?> handleImageInvalidException(ImageInvalidException e){
-        Map<String,Object> response = new HashMap<>();
-        response.put("status", "BAD_REQUEST(400)");
-        response.put("message",e.getMessage());
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    public ResponseEntity<?> handleImageInvalidException(ImageInvalidException e,WebRequest request){
+
+        return buildExceptionResponse(
+                HttpStatus.BAD_REQUEST,
+                e.getMessage(),
+                request
+        );
     }
 
+    //helper method
+
+    private ResponseEntity<?>  buildExceptionResponse(HttpStatus status, String message, WebRequest request){
+        Map<String,Object> response = new HashMap<>();
+        response.put("status", status);
+        response.put("message",message);
+        response.put("timeStamp", LocalDateTime.now());
+        response.put("path",request.getDescription(false));
+        return  ResponseEntity.status(status).body(response);
+    }
 }

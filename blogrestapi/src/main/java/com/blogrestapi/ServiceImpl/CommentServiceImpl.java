@@ -99,7 +99,7 @@ public class CommentServiceImpl implements CommentService {
         long totalElement=page.getTotalElements();
         int totalPage=page.getTotalPages();
         boolean lastPage=page.isLast();
-        PageResponse<CommentDTO> pageResponse=new PageResponse<>(
+        return new PageResponse<>(
                 "OK(200)",
                 getCommentDTO,
                 pageSize,
@@ -108,7 +108,7 @@ public class CommentServiceImpl implements CommentService {
                 totalElement,
                 lastPage
         );
-        return pageResponse;
+
 
 
     }

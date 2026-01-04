@@ -44,7 +44,7 @@ public class SecurityConfig {
             "/swagger-ui/**",
             "/swagger-ui.html",
             "/swagger-resources/**",
-            "/api/login", "/api/register","/api/posts/**"
+            "/api/login", "/api/register",
     };
 
     private final JWTAuthencticationEntryPoint entryPoint;

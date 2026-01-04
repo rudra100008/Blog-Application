@@ -6,6 +6,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import com.blogrestapi.Config.AppConstant;
+import com.blogrestapi.Config.CacheConfig;
 import com.blogrestapi.DTO.CloudinaryResponse;
 import com.blogrestapi.Exception.ImageInvalidException;
 import com.blogrestapi.Security.AuthUtils;
@@ -17,6 +18,7 @@ import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -53,35 +55,40 @@ public class PostServiceImpl implements PostService {
     private final AuthUtils authUtils;
     private final CloudFileService cloudFileService;
 
-    private static final  String  CACHE_ALL_POSTS ="cacheAllPosts";
-    private static final String CACHE_POST = "cachePost";
-    private static final String CACHE_POST_BY_USERID = "cachePostByUserId";
-    private static  final String CACHE_POST_BY_CATEGORYID = "cachePostByCategoryId";
 
 
     @Override
     @Transactional(readOnly = true)
-    @Cacheable(value = CACHE_ALL_POSTS)
+    @Cacheable(value = CacheConfig.CACHE_POSTS,
+            key = "{#pageNumber, #pageSize, #sortBy, #sortDir}")
     public PageResponse<PostDTO> getAllPosts(int pageNumber, int pageSize, String sortBy, String sortDir) {
+        log.debug("Fetching all posts from database - page: {}, size: {}", pageNumber, pageSize);
         validatePaginationParams(pageNumber,pageSize);
         Pageable pageable = createPageable(pageSize,pageNumber,sortBy,sortDir);
         Page<Post> postPage = this.postDao.findAll(pageable);
         return buildPageResponse(postPage,pageNumber,pageSize);
     }
 
-
     @Override
     @Transactional(readOnly = true)
-    @Cacheable(value = CACHE_POST, key = "#id")
+    @Cacheable(value = CacheConfig.CACHE_POST_BY_ID, key = "#id", unless = "#result == null")
     public PostDTO getPostById(int id) {
+        log.debug("Fetching post from database with ID: {}", id);
         return this.postDao.findById(id)
                 .map(post -> modelMapper.map(post, PostDTO.class))
-                .orElseThrow(() -> new ResourceNotFoundException("Post not found with  id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Post not found with id: " + id));
     }
 
     @Override
-    @CacheEvict(value = {CACHE_POST,CACHE_ALL_POSTS,CACHE_POST_BY_CATEGORYID,CACHE_POST_BY_USERID},allEntries = true)
+    @Transactional
+    @org.springframework.cache.annotation.Caching(evict = {
+            @CacheEvict(value = CacheConfig.CACHE_POSTS, allEntries = true),
+            @CacheEvict(value = CacheConfig.CACHE_POSTS_BY_USER, key = "#userId"),
+            @CacheEvict(value = CacheConfig.CACHE_POSTS_BY_CATEGORY, key = "#categoryId"),
+            @CacheEvict(value = CacheConfig.CACHE_POST_SEARCH, allEntries = true)
+    })
     public PostDTO createPost(PostDTO postDTO, int userId, int categoryId) {
+        log.info("Creating new post for user: {}, category: {}", userId, categoryId);
         postDTO.setPostId((int)sequence.generateSequence("post_sequence"));
         User user = this.userDao.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found by userId: " + userId));
@@ -97,96 +104,116 @@ public class PostServiceImpl implements PostService {
         return modelMapper.map(savedPost, PostDTO.class);
     }
 
-
-
     @Override
-    @CacheEvict(value = {CACHE_POST,CACHE_ALL_POSTS,CACHE_POST_BY_CATEGORYID,CACHE_POST_BY_USERID},allEntries = true)
-            public void deletePostById(int id) {
-        if (!this.postDao.existsById(id)) {
-            throw new ResourceNotFoundException("Post not found with id: " + id);
-        }
-        PostDTO post = getPostById(id);
-        if(post.getImage() != null && !post.getImage().isEmpty()){
-           deletePostImage(post.getPostId());
-           try{
-               this.cloudFileService.deleteFile(post.getPublicId());
-           }catch (IOException e){
-               log.error("Failed to delete image in Cloudinary: {}", e.getMessage());
-               throw new ImageInvalidException("Failed to delete image in Cloudinary");
-           }
-        }
-        this.postDao.deleteById(id);
-    }
-
-    @Override
-    @CacheEvict(value = {CACHE_POST,CACHE_ALL_POSTS,CACHE_POST_BY_CATEGORYID,CACHE_POST_BY_USERID},allEntries = true)
-    public List<PostDTO> searchPost(String keyword) {
-        List<Post> listPost =this.postDao.findByPostTitleContainingIgnoreCase(keyword);
-        return listPost.stream().map(p->modelMapper.map(p, PostDTO.class)).toList();
-    }
-
-    @Override
-    @CacheEvict(value = {CACHE_POST,CACHE_ALL_POSTS,CACHE_POST_BY_CATEGORYID,CACHE_POST_BY_USERID},allEntries = true)
-    public PostDTO updatePostField(int id, PostDTO postDTO, int userId, int categoryId) {
+    @Transactional
+    @org.springframework.cache.annotation.Caching(evict = {
+            @CacheEvict(value = CacheConfig.CACHE_POST_BY_ID, key = "#id"),
+            @CacheEvict(value = CacheConfig.CACHE_POSTS, allEntries = true),
+            @CacheEvict(value = CacheConfig.CACHE_POST_SEARCH, allEntries = true),
+            @CacheEvict(value = CacheConfig.CACHE_POSTS_BY_USER, allEntries = true),
+            @CacheEvict(value = CacheConfig.CACHE_POSTS_BY_CATEGORY, allEntries = true)
+    })
+    public void deletePostById(int id) {
+        log.info("Deleting post with ID: {}", id);
         Post post = this.postDao.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Post not found with id: " + id));
-        User user = this.userDao.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found by userId: " + userId));
-        Category category = this.categoryDao.findById(categoryId)
-                .orElseThrow(() -> new ResourceNotFoundException("Category not found with categoryId: " + categoryId));
-        if  (postDTO.getPostTitle() != null && !postDTO.getPostTitle().isEmpty()){
+
+        if(post.getImage() != null && !post.getImage().isEmpty()){
+            try{
+                this.cloudFileService.deleteFile(post.getPublicId());
+            }catch (IOException e){
+                log.error("Failed to delete image in Cloudinary: {}", e.getMessage());
+                throw new ImageInvalidException("Failed to delete image in Cloudinary");
+            }
+        }
+        this.postDao.delete(post);
+    }
+
+    @Override
+    @Transactional
+    @Cacheable(value = CacheConfig.CACHE_POST_SEARCH, key = "#keyword", unless = "#result.isEmpty()")
+    public List<PostDTO> searchPost(String keyword) {
+        log.debug("Searching posts with keyword: {}", keyword);
+        List<Post> listPost = this.postDao.findByPostTitleContainingIgnoreCase(keyword);
+        return listPost.stream().map(p -> modelMapper.map(p, PostDTO.class)).toList();
+    }
+
+    @Override
+    @Transactional
+    @org.springframework.cache.annotation.Caching(evict = {
+            @CacheEvict(value = CacheConfig.CACHE_POST_BY_ID, key = "#id"),
+            @CacheEvict(value = CacheConfig.CACHE_POSTS, allEntries = true),
+            @CacheEvict(value = CacheConfig.CACHE_POST_SEARCH, allEntries = true),
+            @CacheEvict(value = CacheConfig.CACHE_POSTS_BY_USER, key = "#userId"),
+            @CacheEvict(value = CacheConfig.CACHE_POSTS_BY_CATEGORY,
+                    condition = "#postDTO.getCategoryId() != 0 && #postDTO.getCategoryId() != T(java.lang.Integer).valueOf(#categoryId)",
+                    allEntries = true)
+    })
+    public PostDTO updatePostField(int id, PostDTO postDTO, int userId, int categoryId) {
+        log.info("Updating post with ID: {}", id);
+        Post post = this.postDao.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Post not found with id: " + id));
+        if (!post.getUser().getId().equals(userId)){
+            throw new SecurityException("User not authorized to update this post");
+        }
+
+        if (postDTO.getCategoryId() != 0 && postDTO.getCategoryId() != post.getCategory().getCategoryId()) {
+            Category newCategory = this.categoryDao.findById(postDTO.getCategoryId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Category not found"));
+            post.setCategory(newCategory);
+        }
+        if (postDTO.getPostTitle() != null && !postDTO.getPostTitle().isEmpty()){
             post.setPostTitle(postDTO.getPostTitle());
-        }  
+        }
         if (!postDTO.getContent().isEmpty()) {
             post.setContent(postDTO.getContent());
-        }  
-        if (postDTO.getImage()!=null && !postDTO.getImage().isEmpty()) {
-           deletePostImage(postDTO.getPostId());
+        }
 
-            post.setImage(postDTO.getImage());
-        }
-        if ( postDTO.getCategoryId()!=category.getCategoryId() && postDTO.getCategoryId() !=0) {
-            Category newCategory = this.categoryDao.findById(postDTO.getCategoryId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Category not found with categoryId: " + postDTO.getCategoryId()));
-            post.setCategory(newCategory);
-        } else {
-            post.setCategory(category);
-        }
         post.setPostDate(new Date());
-         post.setUser(user);
         Post updatePost = this.postDao.save(post);
         return modelMapper.map(updatePost, PostDTO.class);
     }
 
     @Override
-    @Cacheable(value = CACHE_POST_BY_USERID, key = "#userId")
-    public PageResponse<PostDTO> getPostByUserId(int userId,int pageNumber,int pageSize,String sortBy,String sortDir) {
-        User user =validateUser(userId);
-
+    @Transactional(readOnly = true)
+    @Cacheable(value = CacheConfig.CACHE_POSTS_BY_USER,
+            key = "{#userId, #pageNumber, #pageSize, #sortBy, #sortDir}")
+    public PageResponse<PostDTO> getPostByUserId(int userId, int pageNumber, int pageSize, String sortBy, String sortDir) {
+        log.debug("Fetching posts for user ID: {}, page: {}", userId, pageNumber);
+        User user = this.userDao.findById(userId)
+                .orElseThrow(()-> new ResourceNotFoundException("User not found"));
 
         Pageable pageable= createPageable(pageSize,pageNumber,sortBy,sortDir);
-
-        Page<Post> pagePost = this.postDao.findPostByUser(user,pageable);
-
+        Page<Post> pagePost = this.postDao.findPostByUserId(user.getId(),pageable);
         return buildPageResponse(pagePost,pageNumber,pageSize);
     }
 
     @Override
-    @Cacheable(value = CACHE_POST_BY_CATEGORYID,key = "#categoryId")
-    public PageResponse<PostDTO> getPostByCategoryId(int categoryId,int pageNumber,int pageSize,String sortBy,String sortDir) {
+    @Transactional(readOnly = true)
+    @Cacheable(value = CacheConfig.CACHE_POSTS_BY_CATEGORY,
+            key = "{#categoryId, #pageNumber, #pageSize, #sortBy, #sortDir}")
+    public PageResponse<PostDTO> getPostByCategoryId(int categoryId, int pageNumber, int pageSize, String sortBy, String sortDir) {
+        log.debug("Fetching posts for category ID: {}, page: {}", categoryId, pageNumber);
         validatePaginationParams(pageNumber,pageSize);
         Pageable pageable = createPageable(pageSize,pageNumber,sortBy,sortDir);
-        //to get the category with provide categoryID
+
+        // Validate category exists
         this.categoryDao.findById(categoryId)
-        .orElseThrow(()->new ResourceNotFoundException("Category not found by this id: "+categoryId));
+                .orElseThrow(()->new ResourceNotFoundException("Category not found by this id: "+categoryId));
 
         Page<Post> pagePost=this.postDao.findPostByCategoryId(categoryId,pageable);
         log.info("Posts found for categoryId {}: {}", categoryId, pagePost.getTotalElements());
         return buildPageResponse(pagePost,pageNumber,pageSize);
-
     }
 
     @Override
+    @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = CacheConfig.CACHE_POST_BY_ID, key = "#postId"),
+            @CacheEvict(value = CacheConfig.CACHE_POSTS, allEntries = true),
+            @CacheEvict(value = CacheConfig.CACHE_POSTS_BY_USER, key = "#userId"),
+            @CacheEvict(value = CacheConfig.CACHE_POSTS_BY_CATEGORY, allEntries = true)
+    })
     public PostDTO uploadPostImage(MultipartFile imageFile, Integer postId,Integer userId) {
         User user = validateUser(userId);
         if ( imageFile == null || imageFile.isEmpty()){
@@ -198,7 +225,6 @@ public class PostServiceImpl implements PostService {
                 deletePostImage(post.getPostId());
             }
             String completePath = this.fileService.uploadFile(postImagePath,imageFile);
-
             post.setImage(completePath);
         }catch(IOException e){
             throw new ImageInvalidException("Post image uploading failed.");
@@ -208,6 +234,13 @@ public class PostServiceImpl implements PostService {
     }
 
     @Override
+    @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = CacheConfig.CACHE_POST_BY_ID, key = "#postId"),
+            @CacheEvict(value = CacheConfig.CACHE_POSTS, allEntries = true),
+            @CacheEvict(value = CacheConfig.CACHE_POSTS_BY_USER, key = "#userId"),
+            @CacheEvict(value = CacheConfig.CACHE_POSTS_BY_CATEGORY, allEntries = true)
+    })
     public PostDTO uploadPostImageInCloud(MultipartFile imageFile, Integer postId, Integer userId)throws  IOException {
         User user = validateUser(userId);
         if ( imageFile == null || imageFile.isEmpty()){
@@ -226,15 +259,14 @@ public class PostServiceImpl implements PostService {
         }
         Post updatedPost = this.postDao.save(post);
         return this.modelMapper.map(updatedPost,PostDTO.class);
-
     }
 
     @Override
+    @Cacheable(value = CacheConfig.CACHE_POST_BY_ID, key = "#postId")
     public PostDTO getPostImageInCloud(Integer postId, Integer userId) throws  IOException{
         User user = validateUser(userId);
         Post post = getPostByIdAndUser(postId,user);
-
-        return null;
+        return modelMapper.map(post, PostDTO.class);
     }
 
 

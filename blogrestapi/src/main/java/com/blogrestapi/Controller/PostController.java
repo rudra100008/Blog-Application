@@ -144,8 +144,22 @@ public class PostController {
             @RequestParam(value = "sortDir", defaultValue = AppConstant.SORT_DIR, required = false) String sortDir
     ){
         PageResponse<PostDTO> postDTOS = this.postService.getPostByUserId(userId,pageNumber,pageSize,sortBy,sortDir);
+        log.info("User Posts: {}",postDTOS.getData());
         return ResponseEntity.status(HttpStatus.OK).body(postDTOS);
     }
+    @GetMapping("/posts/category/{categoryId}")
+    public ResponseEntity<?> getPostByCategory(@PathVariable("categoryId") int categoryId,
+                                               @RequestParam(value = "pageNumber", required = false, defaultValue = AppConstant.PAGE_NUMBER) int pageNumber,
+                                               @RequestParam(value = "pageSize", required = false, defaultValue = AppConstant.PAGE_SIZE) int pageSize,
+                                               @RequestParam(value = "sortBy", defaultValue = AppConstant.SORT_BY, required = false) String sortBy,
+                                               @RequestParam(value = "sortDir", defaultValue = AppConstant.SORT_DIR, required = false) String sortDir) {
+
+        PageResponse<PostDTO> post = this.postService.getPostByCategoryId(categoryId, pageNumber, pageSize, sortBy,
+                sortDir);
+        log.info("Post {}",post);
+        return ResponseEntity.status(HttpStatus.OK).body(post);
+    }
+
     // helper method
 
 }

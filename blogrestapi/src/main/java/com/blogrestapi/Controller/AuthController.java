@@ -82,10 +82,11 @@ public class AuthController {
         }
 
         UserDTO saveUser = this.userService.registerNewUser(userDTO);
-        UserDTO updatedUser = this.userService.uploadImageInCloud(imageFile, saveUser.getId());
+        if(imageFile != null && !imageFile.isEmpty()){
+            saveUser = this.userService.uploadImageInCloud(imageFile, saveUser.getId());
+        }
         response.put("message", "User inserted successfully");
-        response.put("status", "CREATED(201)");
-        response.put("data", updatedUser);
+        response.put("data", saveUser);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 

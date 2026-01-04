@@ -11,26 +11,28 @@ import com.blogrestapi.Entity.Post;
 import com.blogrestapi.Entity.User;
 import com.blogrestapi.Exception.ResourceNotFoundException;
 import com.blogrestapi.Service.LikeService;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@RequiredArgsConstructor
+@Slf4j
 public class LikeServiceImpl implements LikeService {
-    @Autowired
-    private LikeDao likeDao;
-    @Autowired
-    private DisLikeDao disLikeDao;
-    @Autowired
-    private ModelMapper modelMapper;
-    @Autowired
-    private UserDao userDao;
-    @Autowired
-    private PostDao postDao;
-    @Autowired
-    private SequenceGeneratorService generatorService;
+    private final LikeDao likeDao;
+    private final  DisLikeDao disLikeDao;
+    private final ModelMapper modelMapper;
+    private final  UserDao userDao;
+    private final PostDao postDao;
+    private  final SequenceGeneratorService generatorService;
+
     @Override
-    public synchronized LikeDTO postLike( int userId, int postId) {
+    @Transactional(isolation = Isolation.SERIALIZABLE)
+    public  LikeDTO postLike( int userId, int postId) {
         User user=this.userDao.findById(userId)
                 .orElseThrow(()-> new ResourceNotFoundException("User not found with id: "+userId));
         Post post=this.postDao.findById(postId)
