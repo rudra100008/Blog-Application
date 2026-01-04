@@ -11,11 +11,24 @@ export default function UpdateProfilePage() {
   const [userDetails, setUserDetails] = useState(null)
   const [loading, setLoading] = useState(true)
 
-  const getToken = () => localStorage.getItem('token')
-  const getUserId = () => localStorage.getItem('userId')
+
+const getUserId = () => {
+  if (typeof window !== 'undefined') {
+    return localStorage.getItem('userId');
+  }
+  return null;
+};
+
+const getToken = () => {
+  if (typeof window !== 'undefined') {
+    return localStorage.getItem('token');
+  }
+  return null;
+};
 
   useEffect(() => {
     const fetchUserDetails = async () => {
+       if (typeof window === 'undefined') return;
       const token = getToken()
       const userId = getUserId()
       

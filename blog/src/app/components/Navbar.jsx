@@ -21,11 +21,23 @@ const Navbar = ({ user }) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [loggedIn, setLoggedIn] = useState(false);
 
-  const getToken = () => {
-    return localStorage.getItem("token");
-  };
+ 
+const getUserId = () => {
+  if (typeof window !== 'undefined') {
+    return localStorage.getItem('userId');
+  }
+  return null;
+};
+
+const getToken = () => {
+  if (typeof window !== 'undefined') {
+    return localStorage.getItem('token');
+  }
+  return null;
+};
 
    const handleLogout = async() => {
+      if (typeof window === 'undefined') return;
      const token = getToken();
      if(!token){
       console.log("No token")
@@ -40,6 +52,7 @@ const Navbar = ({ user }) => {
    };
 
   useEffect(() => {
+      if (typeof window === 'undefined') return;
     const token = getToken();
     if (token) {
       setLoggedIn(true);

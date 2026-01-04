@@ -30,13 +30,20 @@ const Post = ({ post, isUserPost, onDelete }) => {
   const [userImage, setUserImage] = useState({});
   const [username, setUsername] = useState({});
 
-  const getToken = () => {
-    return localStorage.getItem("token");
-  };
+ 
+const getUserId = () => {
+  if (typeof window !== 'undefined') {
+    return localStorage.getItem('userId');
+  }
+  return null;
+};
 
-  const getUserId = () => {
-    return localStorage.getItem("userId");
-  };
+const getToken = () => {
+  if (typeof window !== 'undefined') {
+    return localStorage.getItem('token');
+  }
+  return null;
+};
 
   const saveLike = (liked, disliked) => {
     localStorage.setItem(

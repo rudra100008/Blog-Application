@@ -29,6 +29,7 @@ const AllPost = () => {
     setLoading(true);
 
     try {
+        if (typeof window === 'undefined') return;
       const token = getToken();
 
       const url =

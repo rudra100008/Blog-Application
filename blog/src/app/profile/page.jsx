@@ -20,9 +20,21 @@ import {
 import UpdateProfile from "../updateprofile/page";
 import { logout } from "../services/AuthService";
 
-const getUserId = () => localStorage.getItem("userId")
 
-const getToken = () => localStorage.getItem("token");
+const getUserId = () => {
+  if (typeof window !== 'undefined') {
+    return localStorage.getItem('userId');
+  }
+  return null;
+};
+
+const getToken = () => {
+  if (typeof window !== 'undefined') {
+    return localStorage.getItem('token');
+  }
+  return null;
+};
+
 const Profile = () => {
   const router = useRouter();
   const [active, setActive] = useState("posts");
@@ -41,6 +53,7 @@ const Profile = () => {
   };
 
   const handleLogout = async() => {
+     if (typeof window === 'undefined') return;
     const token = getToken();
     try{
       const response = await logout(token,router);
@@ -88,36 +101,13 @@ const Profile = () => {
       });
   };
 
-  // const getUserImageFromServer = async () => {
-  //   await axios
-  //     .get(`${base_url}${userDetails.image}`, {
-  //       headers: {
-  //         Authorization: `Bearer ${getToken()}`,
-  //       },
-  //       responseType: "blob",
-  //     })
-  //     .then((response) => {
-  //       const url = URL.createObjectURL(response.data);
-  //       setImageUrl(url);
-  //     })
-  //     .catch((error) => {
-  //       console.log(error.response.data);
-  //       if (!userDetails.image) {
-  //         toast.error("No image found for this user.");
-  //       }
-  //       if (error.response.status === 401) {
-  //         localStorage.removeItem("token");
-  //         localStorage.removeItem("userId");
-  //         router.push("/");
-  //       }
-  //     });
-  // };
 
   const handleAddPost = () => {
     router.push("/addPost");
   };
 
   useEffect(() => {
+     if (typeof window === 'undefined') return;
     const token = localStorage.getItem("token");
     if (!token) {
       router.push("/");
@@ -126,11 +116,7 @@ const Profile = () => {
     }
   }, [router]);
 
-  // useEffect(() => {
-  //   if (userDetails.image) {
-  //     getUserImageFromServer();
-  //   }
-  // }, [userDetails]);
+
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">

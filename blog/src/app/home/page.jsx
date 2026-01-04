@@ -10,9 +10,19 @@ import { ToastContainer } from "react-toastify";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faLightbulb, faPenToSquare } from "@fortawesome/free-solid-svg-icons";
 
-const getUserId = () => localStorage.getItem('userId');
-const getToken = () => localStorage.getItem('token');
+const getUserId = () => {
+  if (typeof window !== 'undefined') {
+    return localStorage.getItem('userId');
+  }
+  return null;
+};
 
+const getToken = () => {
+  if (typeof window !== 'undefined') {
+    return localStorage.getItem('token');
+  }
+  return null;
+};
 export default function Home() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);

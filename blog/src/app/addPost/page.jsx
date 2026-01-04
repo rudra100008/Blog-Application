@@ -33,6 +33,8 @@ export default function AddPost() {
   };
 
   const postDataToServer = async() => {
+     if (typeof window === 'undefined') return;
+     
     const token = localStorage.getItem("token");
     const userId = localStorage.getItem("userId");
 

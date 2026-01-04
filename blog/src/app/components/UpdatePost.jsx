@@ -31,6 +31,7 @@ const UpdatePost = ({ post, model }) => {
     };
 
     const updatePostData= async()=>{
+         if (typeof window === 'undefined') return;
         const token =localStorage.getItem('token');
         const userId =localStorage.getItem('userId')
         const formData = new FormData();
