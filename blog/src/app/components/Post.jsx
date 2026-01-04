@@ -104,7 +104,7 @@ const Post = ({ post, isUserPost, onDelete }) => {
     try {
       const response = await axios.get(`${base_url}/comments/post/${postId}`, {
         headers: { Authorization: `Bearer ${token}` },
-        params: { pageNumber: 0, pageSize: 10 },
+        params: { pageNumber: 0, pageSize: 90 },
       });
       const { data } = response.data;
       const commentList = data.map(({ comments, id, userId }) => ({
@@ -200,20 +200,20 @@ const Post = ({ post, isUserPost, onDelete }) => {
   };
 
   const fetchUserImage = async (imageName, userId) => {
-    const token = getToken();
+    // const token = getToken();
     
-    if (!imageName || !token) return;
+    // if (!imageName || !token) return;
 
-    try {
-      const response = await axios.get(`${base_url}/users/getImage/${imageName}`, {
-        headers: { Authorization: `Bearer ${token}` },
-        responseType: "blob",
-      });
-      const imageURL = URL.createObjectURL(response.data);
-      setUserImage((prevImage) => ({ ...prevImage, [userId]: imageURL }));
-    } catch (error) {
-      console.log("Error fetching user image:", error);
-    }
+    // try {
+    //   const response = await axios.get(`${base_url}/users/getImage/${imageName}`, {
+    //     headers: { Authorization: `Bearer ${token}` },
+    //     responseType: "blob",
+    //   });
+    //   const imageURL = URL.createObjectURL(response.data);
+    //   setUserImage((prevImage) => ({ ...prevImage, [userId]: imageURL }));
+    // } catch (error) {
+    //   console.log("Error fetching user image:", error);
+    // }
   };
 
   const fetchUserComment = async (userId) => {
@@ -493,7 +493,7 @@ const Post = ({ post, isUserPost, onDelete }) => {
                     value={comments}
                     onChange={(e) => setComments(e.target.value)}
                     placeholder="Write a comment..."
-                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none outline-none transition-all"
+                    className="w-full px-4 py-3 text-gray-600 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none outline-none transition-all"
                     rows={2}
                   />
                   <button

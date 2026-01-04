@@ -32,7 +32,7 @@ export default function AddPost() {
     setPostData({ ...postData, image: e.target.files[0] });
   };
 
-  const postDataToServer = () => {
+  const postDataToServer = async() => {
     const token = localStorage.getItem("token");
     const userId = localStorage.getItem("userId");
 
@@ -53,7 +53,7 @@ export default function AddPost() {
     formData.append("userId", userId);
     formData.append("categoryId", postData.categoryId);
 
-    axios
+    await axios
       .post(`${base_url}/posts`, formData, {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -93,7 +93,7 @@ export default function AddPost() {
       });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!postData.categoryId) {
       setValidationError({
@@ -102,7 +102,7 @@ export default function AddPost() {
       });
       return;
     }
-    postDataToServer();
+     await postDataToServer();
   };
 
   const handleCancel = () => {

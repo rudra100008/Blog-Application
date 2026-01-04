@@ -12,6 +12,8 @@ import {
   faTimes,
   faRightFromBracket,
 } from "@fortawesome/free-solid-svg-icons";
+import { toast } from "react-toastify";
+import { logout } from "../services/AuthService";
 
 const Navbar = ({ user }) => {
   const router = useRouter();
@@ -23,10 +25,19 @@ const Navbar = ({ user }) => {
     return localStorage.getItem("token");
   };
 
-  const handleLogout = async () => {
-    // Your existing logout logic here
-    alert("Logout functionality");
-  };
+   const handleLogout = async() => {
+     const token = getToken();
+     if(!token){
+      console.log("No token")
+     }
+     try{
+       const response = await logout(token,router);
+       toast.success("Logout successful")
+     }catch(err){
+       console.log("Error in handleLogout: ",err);
+       toast.error("Logout unsuccessful");
+     }
+   };
 
   useEffect(() => {
     const token = getToken();

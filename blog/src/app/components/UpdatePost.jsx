@@ -30,7 +30,7 @@ const UpdatePost = ({ post, model }) => {
         setPostData({ ...postData, image: e.target.files[0] });
     };
 
-    const updatePostData=()=>{
+    const updatePostData= async()=>{
         const token =localStorage.getItem('token');
         const userId =localStorage.getItem('userId')
         const formData = new FormData();
@@ -39,7 +39,7 @@ const UpdatePost = ({ post, model }) => {
             content :postData.content
         })],{type :"application/json"}));
         formData.append("image",postData.image)
-        axios.put(`${base_url}/posts/${post.postId}/users/${userId}?categoryId=${postData.categoryId}`,formData,{
+        await axios.put(`${base_url}/posts/${post.postId}/users/${userId}?categoryId=${postData.categoryId}`,formData,{
             headers:{
                 Authorization : `Bearer ${token}`,
                 "Content-Type" :"multipart/form-data"

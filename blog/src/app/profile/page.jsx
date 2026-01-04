@@ -18,18 +18,13 @@ import {
   faSignOut,
 } from "@fortawesome/free-solid-svg-icons";
 import UpdateProfile from "../updateprofile/page";
+import { logout } from "../services/AuthService";
 
-const getUserId = () => {
-  return localStorage.getItem("userId");
-};
+const getUserId = () => localStorage.getItem("userId")
 
-const getToken = () => {
-  return localStorage.getItem("token");
-};
-
+const getToken = () => localStorage.getItem("token");
 const Profile = () => {
   const router = useRouter();
-  const [imageUrl, setImageUrl] = useState("");
   const [active, setActive] = useState("posts");
   const [showModel, setShowModel] = useState(false);
   const [userDetails, setUserDetails] = useState({
@@ -44,26 +39,19 @@ const Profile = () => {
   const handleGoBack = () => {
     router.back();
   };
-  const handleLogout = () => {
+
+  const handleLogout = async() => {
     const token = getToken();
-    axios
-      .get(`${base_url}/logout`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      })
-      .then((response) => {
-        console.log(response.data);
-        localStorage.removeItem("token");
-        localStorage.removeItem("userId");
-        router.push("/");
-      })
-      .catch((error) => {
-        console.log(error.response);
-      });
+    try{
+      const response = await logout(token,router);
+      toast.success("Logout successful")
+    }catch(err){
+      console.log("Error in handleLogout: ",err.response?.data);
+      toast.error("Logout unsuccessful");
+    }
   };
 
-  const getUserDetails = () => {
+  const getUserDetails = async() => {
     const id = getUserId();
 
     if (!id) {
@@ -71,7 +59,7 @@ const Profile = () => {
       return;
     }
 
-    axios
+   await axios
       .get(`${base_url}/users/${id}`, {
         headers: {
           Authorization: `Bearer ${getToken()}`,
@@ -92,7 +80,7 @@ const Profile = () => {
       })
       .catch((error) => {
         console.log(error.response?.data || error.message);
-        if (error.response.status === 401) {
+        if (error.response?.status === 401) {
           localStorage.removeItem("token");
           localStorage.removeItem("userId");
           router.push("/");
