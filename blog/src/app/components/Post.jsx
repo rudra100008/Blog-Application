@@ -4,58 +4,67 @@ import axios from "axios";
 import base_url from "../api/base_url";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
-  faDumpster,
   faEdit,
-  faEllipsis,
+  faEllipsisV,
+  faMessage,
+  faPaperPlane,
+  faShare,
   faThumbsDown,
   faThumbsUp,
+  faTrash,
 } from "@fortawesome/free-solid-svg-icons";
 import { toast } from "react-toastify";
 import UpdatePost from "./UpdatePost";
-import { faComment } from "@fortawesome/free-regular-svg-icons";
-import { Form, FormGroup, Input } from "reactstrap";
 
 const Post = ({ post, isUserPost, onDelete }) => {
   const [image, setImage] = useState(null);
   const [isOpen, setIsOpen] = useState(false);
-  const [showModel, setShowModel] = useState(false);
+  const [showModal, setShowModal] = useState(false);
   const [isLiked, setIsLiked] = useState(false);
-  const [isNotLiked, setIsNotLiked] = useState(false);
-  const [user, setUser] = useState();
+  const [isDisliked, setIsDisliked] = useState(false);
+  const [user, setUser] = useState(null);
   const [clicked, setClicked] = useState(true);
   const [showComments, setShowComments] = useState(false);
   const [comments, setComments] = useState("");
   const [getAllComments, setGetAllComments] = useState([]);
   const [userImage, setUserImage] = useState({});
-  const [username, setUsername] = useState([]);
+  const [username, setUsername] = useState({});
+
   const getToken = () => {
     return localStorage.getItem("token");
   };
+
   const getUserId = () => {
     return localStorage.getItem("userId");
   };
+
   const saveLike = (liked, disliked) => {
     localStorage.setItem(
       `post-${post.postId}-like`,
       JSON.stringify({ liked, disliked })
     );
   };
+
   const loadLikeSaved = () => {
     const savedLike = JSON.parse(
       localStorage.getItem(`post-${post.postId}-like`)
     );
     if (savedLike) {
       setIsLiked(savedLike.liked);
-      setIsNotLiked(savedLike.disliked);
+      setIsDisliked(savedLike.disliked);
     }
   };
-  const toggleComment = () => {
-    setShowComments(!showComments);
-  };
+
   const commentsHandler = async () => {
     const userId = getUserId();
     const token = getToken();
     const postId = post.postId;
+
+    if (!comments.trim()) {
+      toast.warning("Please write a comment");
+      return;
+    }
+
     try {
       const response = await axios.post(
         `${base_url}/comments/user/${userId}/post/${postId}`,
@@ -65,17 +74,18 @@ const Post = ({ post, isUserPost, onDelete }) => {
 
       console.log("Comment success", response.data);
 
-      const newComment = response.data; // Assuming response.data contains the newly created comment
-      setComments(""); // Clear the comment input
+      const newComment = response.data;
+      setComments("");
 
-      // Update the comments list with the new comment
       setGetAllComments((prevComments) => {
         const updatedComments = [...prevComments, newComment];
         if (newComment.userId) {
-          fetchUserComment(newComment.userId); // Fetch the user's image for the new comment
+          fetchUserComment(newComment.userId);
         }
         return updatedComments;
       });
+
+      toast.success("Comment posted successfully!");
     } catch (error) {
       console.error(
         "Comment failed:",
@@ -88,10 +98,13 @@ const Post = ({ post, isUserPost, onDelete }) => {
   const getAllCommentsFromServer = async () => {
     const token = getToken();
     const postId = post.postId;
+
+    if (!token || !postId) return;
+
     try {
       const response = await axios.get(`${base_url}/comments/post/${postId}`, {
         headers: { Authorization: `Bearer ${token}` },
-        params: { pagNumber: 0, pageSize: 3 },
+        params: { pageNumber: 0, pageSize: 10 },
       });
       const { data } = response.data;
       const commentList = data.map(({ comments, id, userId }) => ({
@@ -106,11 +119,15 @@ const Post = ({ post, isUserPost, onDelete }) => {
       });
       setGetAllComments(commentList);
     } catch (error) {
-      console.log(error);
+      console.log("Error fetching comments:", error);
     }
   };
 
   const handleDelete = () => {
+    if (!window.confirm("Are you sure you want to delete this post?")) {
+      return;
+    }
+
     axios
       .delete(`${base_url}/posts/${post.postId}`, {
         headers: {
@@ -119,33 +136,17 @@ const Post = ({ post, isUserPost, onDelete }) => {
       })
       .then((response) => {
         console.log(response.data);
-        onDelete(post.postId); // Call the delete handler passed from the parent
-        toast.success("Post deleted successfully"); // Show success toast
+        if (onDelete) {
+          onDelete(post.postId);
+        }
+        toast.success("Post deleted successfully");
       })
       .catch((error) => {
         console.error("Error deleting post:", error);
-        toast.error("Failed to delete post"); // Show error toast
+        toast.error("Failed to delete post");
       });
   };
-  const fetchImage = async () => {
-    const token = getToken();
-    await axios
-      .get(`${base_url}${post.image}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        responseType: "blob", // Ensures we get the image as a blob
-      })
-      .then((response) => {
-        const imageURL = URL.createObjectURL(response.data); // Create a URL for the blob
 
-        setImage(imageURL); // Update the state with the image URL
-      })
-      .catch((err) => {
-        console.log("Cannot fetch the image:", err);
-      });
-  };
-  const showProfile = () => {};
   const handleLikePost = async () => {
     const token = getToken();
     const userId = getUserId();
@@ -158,15 +159,13 @@ const Post = ({ post, isUserPost, onDelete }) => {
       });
 
       if (response.data) {
-        // A like was added
         setIsLiked(true);
-        setIsNotLiked(false); // Ensure dislike is removed if liking
+        setIsDisliked(false);
         saveLike(true, false);
         console.log("Post liked", response.data);
       } else {
-        // Like was removed
         setIsLiked(false);
-        saveLike(false, isNotLiked);
+        saveLike(false, isDisliked);
       }
     } catch (error) {
       console.error("Error toggling like:", error);
@@ -178,328 +177,382 @@ const Post = ({ post, isUserPost, onDelete }) => {
     const token = getToken();
     const userId = getUserId();
     const postId = post.postId;
+
     try {
       const response = await axios.post(`${base_url}/dislikePost`, null, {
         headers: { Authorization: `Bearer ${token}` },
         params: { userId, postId },
       });
+
       if (response.data) {
         setIsLiked(false);
-        setIsNotLiked(true);
+        setIsDisliked(true);
         saveLike(false, true);
         console.log("Post Disliked", response.data);
       } else {
-        setIsNotLiked(false);
+        setIsDisliked(false);
         saveLike(isLiked, false);
-        toast.info("DisLike removed");
+        toast.info("Dislike removed");
       }
     } catch (error) {
-      console.error("Error disliking Post: ", error.response.data);
+      console.error("Error disliking Post:", error);
     }
   };
 
   const fetchUserImage = async (imageName, userId) => {
     const token = getToken();
-    await axios
-      .get(`${base_url}/users/getImage/${imageName}`, {
+    
+    if (!imageName || !token) return;
+
+    try {
+      const response = await axios.get(`${base_url}/users/getImage/${imageName}`, {
         headers: { Authorization: `Bearer ${token}` },
         responseType: "blob",
-      })
-      .then((response) => {
-        const imageURL = URL.createObjectURL(response.data);
-        setUserImage((prevImage) => ({ ...prevImage, [userId]: imageURL }));
-      })
-      .catch((error) => {
-        console.log(error.response.data);
       });
+      const imageURL = URL.createObjectURL(response.data);
+      setUserImage((prevImage) => ({ ...prevImage, [userId]: imageURL }));
+    } catch (error) {
+      console.log("Error fetching user image:", error);
+    }
   };
 
   const fetchUserComment = async (userId) => {
     const token = getToken();
-    await axios
-      .get(`${base_url}/users/${userId}`, {
+
+    if (!userId || !token) return;
+
+    try {
+      const response = await axios.get(`${base_url}/users/${userId}`, {
         headers: { Authorization: `Bearer ${token}` },
-      })
-      .then((response) => {
-        const { image, username } = response.data;
-        if (image) {
-          fetchUserImage(image, userId);
-        }
-        setUsername((prevUsername) => ({
-          ...prevUsername,
-          [userId]: username,
-        }));
-      })
-      .catch((error) => {
-        console.log(error.response);
       });
+      const { image, username: userName, imageUrl } = response.data;
+      
+      if (imageUrl) {
+        setUserImage((prevImage) => ({ ...prevImage, [userId]: imageUrl }));
+      } else if (image) {
+        fetchUserImage(image, userId);
+      }
+      
+      setUsername((prevUsername) => ({
+        ...prevUsername,
+        [userId]: userName,
+      }));
+    } catch (error) {
+      console.log("Error fetching user comment data:", error);
+    }
   };
 
   const fetchUserDetails = async () => {
     const token = getToken();
-    await axios
-      .get(`${base_url}/users/${post.userId}`, {
+
+    if (!post?.userId || !token) {
+      console.log("No userId or token available");
+      return;
+    }
+
+    try {
+      const response = await axios.get(`${base_url}/users/${post.userId}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
-      })
-      .then((response) => {
-        setUser(response.data);
-      })
-      .catch((err) => {
-        console.log(err.response.data);
       });
+      setUser(response.data);
+    } catch (err) {
+      console.log("Error fetching user details:", err);
+    }
   };
 
   useEffect(() => {
-    if (post?.image) {
-      fetchImage();
-    }
-    if (post?.userId) {
-      fetchUserDetails();
-    }
-    getAllCommentsFromServer();
-    // getUserData();
-    loadLikeSaved();
-  }, [post?.image, post?.userId]);
+    if (!post) return;
+
+    const initializePost = async () => {
+      loadLikeSaved();
+      
+      if (post.userId) {
+        await fetchUserDetails();
+      }
+      
+      if (post.postId) {
+        await getAllCommentsFromServer();
+      }
+    };
+
+    initializePost();
+  }, [post?.postId, post?.userId]);
+
+  // Fallback for user display
+  const displayUsername = user?.username || "Unknown User";
+  const displayUserImage = user?.imageUrl ;
 
   return (
-    <div className="flex justify-center flex-col items-center">
-      <div className="max-w-sm w-full h-auto rounded-md overflow-hidden shadow-lg bg-white m-4 cursor-pointer transition-transform hover:scale-105 hover:shadow-xl">
-        <div className="px-6 py-4 h-auto flex flex-col justify-between">
-          {/* Post Date */}
-          <div className="flex justify-between ">
-            <p className="text-gray-500 text-xs mb-2">
-              {new Date(post?.postDate).toLocaleString("en-US", {
-                weekday: "short",
-                year: "numeric",
-                month: "long",
-                day: "numeric",
-              })}
-            </p>
-            <div className="relative">
-              {isUserPost && (
-                <div>
-                  {/* Three-dot icon button */}
-                  <button
-                    onClick={() => setIsOpen((prevState) => !prevState)}
-                    className="p-2 rounded-full hover:bg-gray-100 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-gray-300"
-                    aria-label="Post options"
-                  >
-                    <FontAwesomeIcon
-                      icon={faEllipsis}
-                      className="w-5 h-5 text-gray-600"
-                    />
-                  </button>
-
-                  {/* Dropdown menu with animation */}
-                  {isOpen && (
-                    <>
-                      {/* Backdrop to close dropdown when clicking outside */}
-                      <div
-                        className="fixed inset-0 z-10"
-                        onClick={() => setIsOpen(false)}
-                      />
-
-                      {/* Dropdown content */}
-                      <div className="absolute right-0 top-12 w-44 bg-white rounded-lg shadow-xl border border-gray-200 z-20 overflow-hidden animate-slideDown">
-                        {/* Delete option */}
-                        <button
-                          className="w-full text-left px-4 py-3 hover:bg-red-50 transition-colors duration-150 flex items-center gap-3 group"
-                          onClick={() => {
-                            handleDelete();
-                            setIsOpen(false);
-                          }}
-                        >
-                          <FontAwesomeIcon
-                            icon={faDumpster}
-                            className="w-4 h-4 text-gray-500 group-hover:text-red-500 transition-colors duration-150"
-                          />
-                          <span className="text-sm font-medium text-gray-700 group-hover:text-red-600">
-                            Delete Post
-                          </span>
-                        </button>
-
-                        {/* Divider */}
-                        <div className="border-t border-gray-100" />
-
-                        {/* Edit option */}
-                        <button
-                          className="w-full text-left px-4 py-3 hover:bg-green-50 transition-colors duration-150 flex items-center gap-3 group"
-                          onClick={() => {
-                            setShowModel(true);
-                            setIsOpen(false);
-                          }}
-                        >
-                          <FontAwesomeIcon
-                            icon={faEdit}
-                            className="w-4 h-4 text-gray-500 group-hover:text-green-500 transition-colors duration-150"
-                          />
-                          <span className="text-sm font-medium text-gray-700 group-hover:text-green-600">
-                            Edit Post
-                          </span>
-                        </button>
-                      </div>
-                    </>
-                  )}
-                </div>
-              )}
+    <div className="flex justify-center">
+      <div className="max-w-2xl w-full bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 mb-6 overflow-hidden">
+        {/* Post Header */}
+        <div className="p-6 pb-4">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center space-x-3">
+              <img
+                src={displayUserImage}
+                alt={displayUsername}
+                className="w-12 h-12 rounded-full object-cover border-2 border-indigo-100"
+                
+              />
+              <div>
+                <h3 className="font-bold text-gray-800 hover:text-indigo-600 cursor-pointer transition-colors">
+                  {displayUsername.toUpperCase()}
+                </h3>
+                <p className="text-xs text-gray-500">
+                  {post?.postDate ? new Date(post.postDate).toLocaleString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                    year: "numeric",
+                  }) : "Unknown date"}
+                </p>
+              </div>
             </div>
+
+            {/* Options Menu */}
+            {isUserPost && (
+              <div className="relative">
+                <button
+                  onClick={() => setIsOpen(!isOpen)}
+                  className="p-2 hover:bg-gray-100 rounded-full transition-colors duration-200"
+                >
+                  <FontAwesomeIcon
+                    icon={faEllipsisV}
+                    className="w-5 h-5 text-gray-600"
+                  />
+                </button>
+
+                {isOpen && (
+                  <>
+                    <div
+                      className="fixed inset-0 z-10"
+                      onClick={() => setIsOpen(false)}
+                    />
+                    <div className="absolute right-0 top-12 w-48 bg-white rounded-xl shadow-2xl border border-gray-200 z-20 overflow-hidden">
+                      <button
+                        onClick={() => {
+                          setShowModal(true);
+                          setIsOpen(false);
+                        }}
+                        className="w-full text-left px-4 py-3 hover:bg-indigo-50 transition-colors flex items-center space-x-3 group"
+                      >
+                        <FontAwesomeIcon
+                          icon={faEdit}
+                          className="w-4 h-4 text-gray-600 group-hover:text-indigo-600"
+                        />
+                        <span className="text-sm font-medium text-gray-700 group-hover:text-indigo-600">
+                          Edit Post
+                        </span>
+                      </button>
+                      <div className="border-t border-gray-100" />
+                      <button
+                        onClick={() => {
+                          handleDelete();
+                          setIsOpen(false);
+                        }}
+                        className="w-full text-left px-4 py-3 hover:bg-red-50 transition-colors flex items-center space-x-3 group"
+                      >
+                        <FontAwesomeIcon
+                          icon={faTrash}
+                          className="w-4 h-4 text-gray-600 group-hover:text-red-600"
+                        />
+                        <span className="text-sm font-medium text-gray-700 group-hover:text-red-600">
+                          Delete Post
+                        </span>
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
           </div>
-          {user && (
-            <p className="text-gray-700 text-sm mb-2 ">
-              <span className="font-medium text-lg no-underline hover:underline decoration-cyan-300 hover:text-cyan-300 hover:underline-offset-4">
-                {user.username.toUpperCase()}
-              </span>
-            </p>
-          )}
+
           {/* Post Title */}
-          <h2 className="font-bold text-xl text-gray-800 mb-2 line-clamp-2">
-            {post?.postTitle}
+          <h2 className="text-2xl font-bold text-gray-800 mb-3">
+            {post?.postTitle || "Untitled Post"}
           </h2>
 
-          {/* Post Content (Truncated) */}
-          <p
-            className={`text-gray-700 text-base mb-4 overflow-hidden ${
-              clicked ? "line-clamp-3" : ""
-            }`}
-          >
-            {post?.content.length > 99 && clicked ? (
+          {/* Post Content */}
+          <div className="text-gray-700 leading-relaxed">
+            {post?.content && (
               <>
-                {`${post?.content.substring(0, 100)}.....`}
-                <button
-                  onClick={() => setClicked(false)}
-                  className="text-blue-300 text-xs hover:underline"
-                >
-                  Read More
-                </button>
-              </>
-            ) : (
-              <>
-                {post?.content}
-                {post?.content.length > 99 && (
-                  <button
-                    onClick={() => setClicked(true)}
-                    className="text-blue-300 text-xs hover:underline"
-                  >
-                    Read Less
-                  </button>
+                {clicked && post.content.length > 200 ? (
+                  <>
+                    {post.content.substring(0, 200)}...
+                    <button
+                      onClick={() => setClicked(false)}
+                      className="ml-2 text-indigo-600 font-semibold hover:text-indigo-700 transition-colors"
+                    >
+                      Read More
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    {post.content}
+                    {post.content.length > 200 && (
+                      <button
+                        onClick={() => setClicked(true)}
+                        className="ml-2 text-indigo-600 font-semibold hover:text-indigo-700 transition-colors"
+                      >
+                        Show Less
+                      </button>
+                    )}
+                  </>
                 )}
               </>
             )}
-          </p>
-
-          {/* Read More Button */}
-          <div className="mt-auto"></div>
-          {image && (
-            <div className="mt-4  bg-gray-100 relative ">
-              <img
-                className=" w-full h-full object-contain transition-opacity hover:opacity-90"
-                src={image}
-                alt={post?.postTitle}
-              />
-            </div>
-          )}
-          {/* like, Dislike and Comment */}
-          {!isUserPost && (
-            <div className="flex justify-between mt-3 ">
-              <div className="space-x-3">
-                <button onClick={handleLikePost} className="group relative">
-                  <FontAwesomeIcon
-                    className={`${
-                      isLiked ? "text-sky-400" : "text-black"
-                    } w-6 h-6 transition-transform duration-150 ease-in-out group-hover:scale-110`}
-                    icon={faThumbsUp}
-                  />
-                </button>
-                <button
-                  onClick={handleDislikePost}
-                  className="group relative focus:outline-none"
-                >
-                  <FontAwesomeIcon
-                    className={`${
-                      isNotLiked ? "text-sky-400" : "text-black"
-                    } w-6 h-6 transition-transform duration-150 ease-in-out group-hover:scale-110`}
-                    icon={faThumbsDown}
-                  />
-                </button>
-              </div>
-              <button onClick={toggleComment}>
-                <FontAwesomeIcon
-                  icon={faComment}
-                  className="w-6 h-6 transition-transform duration-150 ease-in-out group-hover:scale-110"
-                />
-              </button>
-            </div>
-          )}
-        </div>
-        {/* Image Container */}
-      </div>
-      {/* Comment Section */}
-      {showComments && (
-        <div className="bg-gray-100 rounded-xl shadow-xl max-w-sm w-full py-3 px-4">
-          <Form onSubmit={(e) => e.preventDefault()}>
-            <FormGroup>
-              <Input
-                id="comment"
-                name="comment"
-                type="text"
-                value={comments}
-                onChange={(e) => setComments(e.target.value)}
-                placeholder="Write a comment...."
-                className="border-gray-300 shadow-md"
-              />
-            </FormGroup>
-            <button
-              onClick={commentsHandler}
-              className="bg-sky-300 rounded-xl shadow-lg py-2 px-4 font-semibold text-white transition-transform hover:scale-110 hover:bg-sky-400"
-            >
-              Comment
-            </button>
-          </Form>
-
-          {/* Comment List */}
-          <div className="max-h-48 overflow-y-auto mt-3">
-            {" "}
-            {/* Fixed height and scrollable content */}
-            {getAllComments.length > 0 &&
-              getAllComments.map((comment) => (
-                <div key={comment.id} className="border-b py-3  space-x-3">
-                  {/* User's Image and Name */}
-                  <div className="flex items-center space-x-2">
-                    {userImage[comment.userId] ? (
-                      <img
-                        src={userImage[comment.userId]}
-                        className="w-8 h-8 rounded-full"
-                        alt="User Avatar"
-                      />
-                    ) : (
-                      <div className="w-8 h-8 rounded-full bg-gray-300"></div> // Placeholder if no image
-                    )}
-                    <span className="font-semibold text-sm text-gray-800">
-                      {username[comment.userId]}
-                    </span>
-                  </div>
-
-                  {/* Comment Content */}
-                  <div className="text-sm mx-5 text-gray-700 mt-1">
-                    {comment.comments}
-                  </div>
-
-                  {/* Optionally, you can add the comment date here */}
-                  {/* <span className="text-xs text-gray-500 mt-1 ml-2">{new Date(comment.createdAt).toLocaleString()}</span> */}
-                </div>
-              ))}
           </div>
         </div>
-      )}
 
-      {showModel && (
-        <div className="">
-          <UpdatePost post={post} model={() => setShowModel(false)} />
+        {/* Post Image */}
+        {post?.imageUrl && (
+          <div className="w-full">
+            <img
+              src={post.imageUrl}
+              alt={post.postTitle}
+              className="w-full h-auto max-h-[500px] object-cover"
+              onError={(e) => {
+                e.target.style.display = "none";
+              }}
+            />
+          </div>
+        )}
+
+        {/* Interaction Buttons */}
+        <div className="px-6 py-4 border-t border-gray-100">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-6">
+              {!isUserPost && (
+                <>
+                  <button
+                    onClick={handleLikePost}
+                    className={`flex items-center space-x-2 transition-all duration-200 ${
+                      isLiked
+                        ? "text-indigo-600"
+                        : "text-gray-600 hover:text-indigo-600"
+                    }`}
+                  >
+                    <FontAwesomeIcon
+                      icon={faThumbsUp}
+                      className="w-5 h-5"
+                    />
+                    <span className="font-medium text-sm">Like</span>
+                  </button>
+
+                  <button
+                    onClick={handleDislikePost}
+                    className={`flex items-center space-x-2 transition-all duration-200 ${
+                      isDisliked
+                        ? "text-red-600"
+                        : "text-gray-600 hover:text-red-600"
+                    }`}
+                  >
+                    <FontAwesomeIcon
+                      icon={faThumbsDown}
+                      className="w-5 h-5"
+                    />
+                    <span className="font-medium text-sm">Dislike</span>
+                  </button>
+                </>
+              )}
+
+              <button
+                onClick={() => setShowComments(!showComments)}
+                className="flex items-center space-x-2 text-gray-600 hover:text-indigo-600 transition-colors"
+              >
+                <FontAwesomeIcon icon={faMessage} className="w-5 h-5" />
+                <span className="font-medium text-sm">
+                  Comment ({getAllComments.length})
+                </span>
+              </button>
+            </div>
+
+            <button className="flex items-center space-x-2 text-gray-600 hover:text-indigo-600 transition-colors">
+              <FontAwesomeIcon icon={faShare} className="w-5 h-5" />
+              <span className="font-medium text-sm">Share</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Comments Section */}
+        {showComments && (
+          <div className="px-6 pb-6 border-t border-gray-100">
+            {/* Comment Input */}
+            <div className="mt-4 mb-6">
+              <div className="flex items-start space-x-3">
+                <img
+                  src={displayUserImage}
+                  alt="Your avatar"
+                  className="w-10 h-10 rounded-full object-cover"
+                 
+                />
+                <div className="flex-1">
+                  <textarea
+                    value={comments}
+                    onChange={(e) => setComments(e.target.value)}
+                    placeholder="Write a comment..."
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none outline-none transition-all"
+                    rows={2}
+                  />
+                  <button
+                    onClick={commentsHandler}
+                    disabled={!comments.trim()}
+                    className="mt-2 flex items-center space-x-2 bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-6 py-2 rounded-xl font-semibold shadow-md hover:shadow-lg hover:scale-105 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                  >
+                    <FontAwesomeIcon icon={faPaperPlane} className="w-4 h-4" />
+                    <span>Post Comment</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Comments List */}
+            <div className="space-y-4 max-h-96 overflow-y-auto">
+              {getAllComments.length > 0 ? (
+                getAllComments.map((comment) => (
+                  <div
+                    key={comment.id}
+                    className="flex items-start space-x-3 bg-gray-50 p-4 rounded-xl hover:bg-gray-100 transition-colors"
+                  >
+                    <img
+                      src={userImage[comment.userId] }
+                      alt={username[comment.userId] || "User"}
+                      className="w-10 h-10 rounded-full object-cover"
+                     
+                    />
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-2 mb-1">
+                        <h4 className="font-semibold text-gray-800 text-sm">
+                          {username[comment.userId] || "Unknown User"}
+                        </h4>
+                        <span className="text-xs text-gray-500">· Just now</span>
+                      </div>
+                      <p className="text-gray-700 text-sm leading-relaxed">
+                        {comment.comments}
+                      </p>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <p className="text-center text-gray-500 py-4">
+                  No comments yet. Be the first to comment!
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Edit Modal */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <UpdatePost post={post} model={() => setShowModal(false)} />
         </div>
       )}
     </div>
   );
 };
+
 export default Post;

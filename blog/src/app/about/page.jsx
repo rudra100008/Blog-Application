@@ -36,8 +36,8 @@ export default function About(){
         }
       }).then((response) => {
         console.log(response.data);
-        const { id, username, email, image, phoneNumber, description } = response.data;
-        setUserDetails({ id, username, email, image, phoneNumber, description });
+      const { id, username, email, image, phoneNumber, description ,imageUrl,publicId} = response.data;
+      setUserDetails({ id, username, email, image, phoneNumber, description,imageUrl,publicId });
       }).catch((error) => {
         console.log(error.response?.data || error.message);
       });
