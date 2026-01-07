@@ -3,6 +3,7 @@ package com.blogrestapi.Security;
 import java.io.IOException;
 
 import com.blogrestapi.Service.TokenBlackListService;
+import jakarta.servlet.http.Cookie;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.lang.NonNull;
@@ -29,73 +30,74 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final  TokenBlackListService tokenBlackListService;
 
     @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
+        String path = request.getServletPath();
+
+        return path.startsWith("/api/login")
+                || path.startsWith("/api/register")
+                || path.startsWith("/swagger-ui/**")
+                || path.startsWith("/v3/api-docs/**")
+                || path.startsWith("/swagger-ui.html");
+    }
+
+    @Override
     protected void doFilterInternal(
-        @NonNull HttpServletRequest request, 
-        @NonNull HttpServletResponse response, 
-        @NonNull FilterChain filterChain)
+            @NonNull HttpServletRequest request,
+            @NonNull HttpServletResponse response,
+            @NonNull FilterChain filterChain)
             throws ServletException, IOException {
-      // 1. Get the token from the request header
-       final String authorizationHeader = request.getHeader("Authorization");
-       // the token we get from the request.getHeader() is in this format->Bearer ASJDLAJDK
-       String username=null;
-       String token=null;
 
-       if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
-           token= authorizationHeader.substring(7);
-           if (tokenBlackListService.isTokenBlackListed(token)) {
-               response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-               response.getWriter().write("Token has been invalidated");
-               return; // Exit if the token is blacklisted
-           }
-           if(jwtTokenHelper.isTokenExpired(token)){
-               response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-               response.getWriter().write("Token has expired");
-               return; //exit if the token has expired
-           }
-           try {
-            username=this.jwtTokenHelper.getUsernameFromToken(token);
-           }catch(IllegalArgumentException i)
-           {
-            log.info("unable to get the jwt token");
-           }catch(ExpiredJwtException e){
-            log.error("Jwt token has expired");
-               sendErrorResponse(response,"token_expired","Token has expired. Please login again",HttpServletResponse.SC_UNAUTHORIZED);
-           }catch(MalformedJwtException mal){
-            log.error("invalid jwt");
-           } catch (Exception e) {
-             log.error(e.getLocalizedMessage());
-           }
+        try {
+            String username = null;
+            String token = null;
+            if (request.getCookies() != null) {
+                log.info("==== Jwt Filter Debug ====");
+                log.info("Cookie found:{} ", request.getCookies().length);
+                for (Cookie cookie : request.getCookies()) {
+                    log.info("Cookie:{} = {}", cookie.getName(), cookie.getValue());
+                    if ("token".equals(cookie.getName()) && cookie.getValue() != null && !cookie.getValue().isEmpty()) {
+                        token = cookie.getValue();
+                        break;
+                    }
+                }
+            }
 
-          
-       }else{
-        filterChain.doFilter(request, response);
-        System.out.println("Jwt token is null or doesn't starts with Bearer");
-        return;
-       }
-       //here securityContextHolder holds the securityContext it means it hold the details about the user 
-       //that is interacting with the application
-       //when securityContect is equals to null then the user is not logged in 
-       if (username != null && SecurityContextHolder.getContext().getAuthentication()==null) {
-        //this loades the userdetails form the database by using the username
-        UserDetails userDetails=this.userDetailService.loadUserByUsername(username);
-        //here the validate token validates the user by comparing with the username in userDetails and username in token 
-        // and validate token also check whether the token is exppired or not
-        if (this.jwtTokenHelper.validateToken(token, userDetails)) {
-            //here authentication represents the authenticated(verified) user and this 
-            //  SecurityContextHolder.getContext().setAuthentication(authentication); set the authenticated user in
-            // the securityContext.This effectively tells Spring Security that the user is now authenticated for this request.
-            UsernamePasswordAuthenticationToken  authentication
-            =new UsernamePasswordAuthenticationToken(userDetails,null,userDetails.getAuthorities());
-           authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-           SecurityContextHolder.getContext().setAuthentication(authentication);
-        }else{
-            System.out.println("Invalid jwt token");
+            if (token != null) {
+                username = jwtTokenHelper.getUsernameFromToken(token);
+                if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+                    UserDetails userDetails = this.userDetailService.loadUserByUsername(username);
+                    if (this.jwtTokenHelper.validateToken(token, userDetails)) {
+                        UsernamePasswordAuthenticationToken authentication
+                                = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+                        authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                        SecurityContextHolder.getContext().setAuthentication(authentication);
+                    } else {
+                        log.info("Invalid jwt token");
+                    }
+                } else {
+                    log.info("JWT token is null or does not start with Bearer");
+                }
+            }
+
+            // Continue the filter chain if no exception occurred
+            filterChain.doFilter(request, response);
+
+        } catch (ExpiredJwtException e) {
+            log.error("JWT token expired", e);
+            sendErrorResponse(response, "token_expired", "Token has expired. Please login again", HttpServletResponse.SC_UNAUTHORIZED);
+
+        } catch (SecurityException e) {
+            log.error("Security exception", e);
+            sendErrorResponse(response, "unauthorized", "You are not authorized to access this", HttpServletResponse.SC_UNAUTHORIZED);
+
+        } catch (MalformedJwtException e) {
+            log.error("Malformed JWT token", e);
+            sendErrorResponse(response, "invalid_token", "Invalid token format", HttpServletResponse.SC_UNAUTHORIZED);
+
+        } catch (Exception e) {
+            log.error("Authentication error", e);
+            sendErrorResponse(response, "authentication_error", "Authentication failed", HttpServletResponse.SC_UNAUTHORIZED);
         }
-       }else{
-        System.out.println("JWT token is null or does not start with Bearer");
-       }
-       filterChain.doFilter(request, response);
-
     }
 
     //helper method

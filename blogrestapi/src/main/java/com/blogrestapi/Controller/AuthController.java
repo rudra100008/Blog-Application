@@ -7,22 +7,25 @@ import java.util.Map;
 import com.blogrestapi.Dao.UserDao;
 import com.blogrestapi.Entity.User;
 import com.blogrestapi.Exception.ResourceNotFoundException;
+import com.blogrestapi.Security.JwtAuthenticationSuccessHandler;
 import com.blogrestapi.ServiceImpl.FileServiceImpl;
 import com.blogrestapi.ValidationGroup.CreateUserGroup;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import com.blogrestapi.DTO.JwtRequest;
-import com.blogrestapi.DTO.JwtResponse;
 import com.blogrestapi.DTO.UserDTO;
 import com.blogrestapi.Security.JWTTokenHelper;
 import com.blogrestapi.Security.UserDetailService;
@@ -43,30 +46,49 @@ public class AuthController {
     @Value("${project.users.image}")
     private String imagePath;
     private final FileServiceImpl fileService;
+    private final JwtAuthenticationSuccessHandler successHandler;
 
     @PostMapping("/login")
-    public ResponseEntity<?> createToken(@RequestBody JwtRequest request) {
-        this.authenticate(request.getUsername(), request.getPassword());
-        UserDetails userDetails=this.userDetailService.loadUserByUsername(request.getUsername());
-        String token= this.jwtTokenHelper.generateToken(userDetails);
-        Boolean isTokenExpired=this.jwtTokenHelper.isTokenExpired(token);
-        User user=   this.userDao.findByUsername(request.getUsername()).orElseThrow(()->
-                new ResourceNotFoundException("User not found"));
-        JwtResponse response=new JwtResponse();
-        response.setToken(token);
-        response.setUserId(user.getId());
-        response.setUsername(user.getUsername());
-        response.setIsTokenExpired(isTokenExpired);
-        return ResponseEntity.ok(response);
-    }
-    public void authenticate(String username, String password) {
-        UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(username, password);
-        //UsernamePassword holds the username and password of user before authentication after thr authentication
-        //it will store the other data like role and permission
-        this.authenticationManager.authenticate(token);// authenticationManger checks whether the username and password
-        // matches with database username and password
+    public ResponseEntity<?> login(
+            @Valid @RequestBody JwtRequest request,
+            BindingResult result,
+            HttpServletResponse servletResponse,
+            HttpServletRequest servletRequest) {
+        if(result.hasErrors()){
+            Map<String,Object> errorRes = new HashMap<>();
+            result.getFieldErrors().forEach(err->
+                    errorRes.put(err.getField(),err.getDefaultMessage()));
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorRes);
+        }
+        try{
+            Authentication authentication = this.authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(
+                            request.getUsername(),
+                            request.getPassword()
+                    )
+            );
 
+            this.successHandler.onAuthenticationSuccess(servletRequest,servletResponse,authentication);
+            User user = this.userDao.findByUsername(request.getUsername()).orElseThrow(
+                    ()-> new ResourceNotFoundException("username not found in database")
+            );
+            Object attribute = servletRequest.getAttribute("AUTH_RESPONSE_DATA");
+            Map<String,Object> responseData = null;
+            if(attribute instanceof Map<?,?>){
+                responseData =(Map<String, Object>) attribute;
+            }else{
+                responseData = new HashMap<>();
+            }
+            responseData.put("userId",user.getId());
+
+            return ResponseEntity.status(HttpStatus.OK).body(responseData);
+        }catch (Exception e){
+            Map<String,String> errorResponse =  new HashMap<>();
+            errorResponse.put("message","Invalid email or password.");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(errorResponse);
+        }
     }
+
     @PostMapping("/register")
     public ResponseEntity<?> register(@Validated(CreateUserGroup.class) @RequestPart("user") UserDTO userDTO,
                                       BindingResult result,

@@ -1,14 +1,13 @@
 package com.blogrestapi.Security;
 
 import com.blogrestapi.Service.TokenBlackListService;
-import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -17,18 +16,14 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.security.web.authentication.logout.LogoutSuccessHandler;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 
 import java.util.List;
-
-import static org.springframework.security.config.Customizer.withDefaults;
 
 @Configuration
 @EnableWebSecurity
@@ -38,7 +33,7 @@ import static org.springframework.security.config.Customizer.withDefaults;
 public class SecurityConfig {
 
     private final UserDetailsService userDetailService;
-
+    private final JsonLogoutHandler jsonLogoutHandler;
     private static final String[] PUBLIC_URL = {
             "/v3/api-docs/**",
             "/swagger-ui/**",
@@ -47,7 +42,7 @@ public class SecurityConfig {
             "/api/login", "/api/register",
     };
 
-    private final JWTAuthencticationEntryPoint entryPoint;
+    private final JWTAuthenticationEntryPoint entryPoint;
 
 
     private final JwtAuthenticationFilter filter;
@@ -63,18 +58,21 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(AbstractHttpConfigurer::disable) // Disable CSRF
+                .cors(Customizer.withDefaults())
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(PUBLIC_URL).permitAll()
                         .anyRequest().authenticated())
-                .exceptionHandling(exception -> exception.authenticationEntryPoint(entryPoint))
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .cors(withDefaults())
+                .formLogin(AbstractHttpConfigurer::disable)
+                .exceptionHandling(exception ->
+                        exception.authenticationEntryPoint(entryPoint))
+                .sessionManagement(session ->
+                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .logout(logout->logout
                         .logoutUrl("/api/logout")
-                        .clearAuthentication(true)
-                        .logoutSuccessHandler(logoutSuccessHandler())
+                        .logoutSuccessHandler(jsonLogoutHandler)
                         .deleteCookies("JSESSIONID")
                         .invalidateHttpSession(true)); // Use the CorsConfigurationSource bean
+
 
         // Add JWT filter before UsernamePasswordAuthenticationFilter
         http.addFilterBefore(filter, UsernamePasswordAuthenticationFilter.class);
@@ -102,22 +100,13 @@ public class SecurityConfig {
         corsConfig.setAllowedHeaders(List.of("*"));
         corsConfig.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH"));
         corsConfig.setAllowCredentials(true); // Allow cookies or authentication
+        corsConfig.setExposedHeaders(List.of("Set-Cookie","Authorization","X-XSRF-TOKEN"));
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", corsConfig); // Apply to all paths
         return source;
     }
-    @Bean
-    public LogoutSuccessHandler logoutSuccessHandler(){
-        return (request, response, authentication) -> {
-            String token =request.getHeader("Authorization");
-            if(token != null && token.startsWith("Bearer ")){
-                token=token.substring(7);
-                tokenBlackListService.blackListToken(token);
-            }
-            response.setStatus(HttpServletResponse.SC_OK);
-            response.getWriter().write("Logout successful");
-        };
-    }
+
+
 
 }
