@@ -4,15 +4,11 @@ import { useEffect, useState } from "react";
 import Navbar from "../components/Navbar";
 import axios from "axios"; // Import axios
 import base_url from "../api/base_url";
+import api from "../api/api";
+import { useAuthHook } from "../hooks/useAuthHook";
 
 export default function About(){
-    const getUserId = () => {
-        return localStorage.getItem('userId');
-      }
-      
-      const getToken = () => {
-        return localStorage.getItem('token');
-      }
+    const {userId} = useAuthHook();  
     const router = useRouter();
     const [userDetails, setUserDetails] = useState({
       id: null,
@@ -24,16 +20,13 @@ export default function About(){
     });
   
     const getUserDetails = () => {
-      const id = getUserId(); // Get user ID from utility function or state
-      if (!id) {
+       // Get user ID from utility function or state
+      if (!userId) {
         console.log("No user ID found");
         return;
       }
   
-      axios.get(`${base_url}/users/${id}`, {
-        headers: {
-          Authorization: `Bearer ${getToken()}`
-        }
+      api.get(`/users/${userId}`, {
       }).then((response) => {
         console.log(response.data);
       const { id, username, email, image, phoneNumber, description ,imageUrl,publicId} = response.data;
@@ -44,14 +37,10 @@ export default function About(){
     };
   
     useEffect(() => {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        router.push("/");
-      } else {
-        getUserDetails(); // Fetch user details if token is present
+      if(userId){
+        getUserDetails();
       }
-      
-    }, [router]);
+    }, [router,userId]);
     return(
         <div>
             <Navbar user={userDetails} />

@@ -14,52 +14,35 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import { toast } from "react-toastify";
 import { logout } from "../services/AuthService";
+import { useAuthHook } from "../hooks/useAuthHook";
 
 const Navbar = ({ user }) => {
   const router = useRouter();
   const pathname = usePathname();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const {userId} = useAuthHook();
   const [loggedIn, setLoggedIn] = useState(false);
 
- 
-const getUserId = () => {
-  if (typeof window !== 'undefined') {
-    return localStorage.getItem('userId');
-  }
-  return null;
-};
-
-const getToken = () => {
-  if (typeof window !== 'undefined') {
-    return localStorage.getItem('token');
-  }
-  return null;
-};
-
    const handleLogout = async() => {
-      if (typeof window === 'undefined') return;
-     const token = getToken();
-     if(!token){
-      console.log("No token")
-     }
      try{
-       const response = await logout(token,router);
+       await logout(router);
        toast.success("Logout successful")
      }catch(err){
        console.log("Error in handleLogout: ",err);
        toast.error("Logout unsuccessful");
      }
    };
-
-  useEffect(() => {
-      if (typeof window === 'undefined') return;
-    const token = getToken();
-    if (token) {
+   
+   useEffect(()=>{
+    console.log("UserId: ",userId)
+    if(userId){
       setLoggedIn(true);
-    } else {
+    }else{
       setLoggedIn(false);
     }
-  }, []);
+   },[userId])
+
+ 
 
   const mockUser = {
     username: user?.username || "john_doe",

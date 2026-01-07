@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import axios from "axios";
 import base_url from "../api/base_url";
 import { toast, ToastContainer } from "react-toastify";
+import api from "../api/api";
 
 const UpdatePost = ({ post, model }) => {
     const router = useRouter();
@@ -32,17 +33,17 @@ const UpdatePost = ({ post, model }) => {
 
     const updatePostData= async()=>{
          if (typeof window === 'undefined') return;
-        const token =localStorage.getItem('token');
-        const userId =localStorage.getItem('userId')
+        const userId =localStorage.getItem('userId');
+
+        
         const formData = new FormData();
         formData.append("postDTO",new Blob([JSON.stringify({
             postTitle : postData.postTitle,
             content :postData.content
         })],{type :"application/json"}));
         formData.append("image",postData.image)
-        await axios.put(`${base_url}/posts/${post.postId}/users/${userId}?categoryId=${postData.categoryId}`,formData,{
+        await api.put(`/posts/${post.postId}/users/${userId}?categoryId=${postData.categoryId}`,formData,{
             headers:{
-                Authorization : `Bearer ${token}`,
                 "Content-Type" :"multipart/form-data"
             }
         }).then((response)=>{

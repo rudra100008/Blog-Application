@@ -1,4 +1,4 @@
-"use client"
+"use client";
 import { Fragment, useEffect, useState } from "react";
 import { Form, FormGroup, Input, Label } from "reactstrap";
 import base_url from "../api/base_url";
@@ -14,56 +14,24 @@ import {
   faSignIn,
   faUser,
 } from "@fortawesome/free-solid-svg-icons";
+import { useAuthHook } from "../hooks/useAuthHook";
 
 export default function Login() {
   const router = useRouter();
+  const { user, validationErr, setUser,setValidationErr, loginUser } = useAuthHook();
   const [sessionMessage, setSessionMessage] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-   const [isLoading, setIsLoading] = useState(false);
-  const [user, setUser] = useState({
-    username: "",
-    password: "",
-  });
+  const [isLoading, setIsLoading] = useState(false);
 
   const newUser = (e) => {
     setUser({ ...user, [e.target.name]: e.target.value });
-  };
+    setValidationErr({...validationErr,[e.target.name]:''});
 
-  const postFromServer = () => {
-    setIsLoading(true)
-    axios
-      .post(`${base_url}/login`, user)
-      .then((response) => {
-        if (response && response.data) {
-          setUser({ username: "", password: "" });
-          console.log(response.data);
-          const { token, userId} = response.data;
-          localStorage.setItem("token", token);
-          localStorage.setItem("userId", userId);
-          toast.success("Login Successful");
-        } else {
-          console.error("No data received from server");
-        }
-        router.push("/home");
-      })
-      .catch((err) => {
-        console.log("Error in postFromServer()",err.response?.data);
-        const message = err.response?.data?.message || "Unknown error";
-        if (err.response?.status === 401) {
-          toast.error("Invalid username or password");
-        } else if (err.response?.status === 500) {
-          toast.error(message);
-        } else {
-          toast.error("Something went wrong");
-        }
-      }).finally(
-        setIsLoading(false)
-      );
   };
 
   const handleForm = (e) => {
     e.preventDefault();
-    postFromServer();
+    loginUser();
   };
 
   useEffect(() => {
@@ -107,7 +75,7 @@ export default function Login() {
           )}
 
           {/* Form */}
-          <form onSubmit={handleForm} className="space-y-6">
+          <form noValidate onSubmit={handleForm} className="space-y-6">
             {/* Username Field */}
             <div>
               <label
@@ -133,6 +101,9 @@ export default function Login() {
                   required
                   className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 outline-none"
                 />
+              </div>
+              <div>
+                {validationErr.username && <p>{validationErr.username}</p>}
               </div>
             </div>
 
@@ -179,6 +150,9 @@ export default function Login() {
                   )}
                 </button>
               </div>
+              <div>
+                {validationErr.password && <p>{validationErr.password}</p>}
+              </div>
             </div>
 
             {/* Remember & Forgot Password */}
@@ -217,9 +191,6 @@ export default function Login() {
               )}
             </button>
           </form>
-
-
-    
 
           {/* Sign Up Link */}
           <p className="mt-8 text-center text-sm text-gray-600">

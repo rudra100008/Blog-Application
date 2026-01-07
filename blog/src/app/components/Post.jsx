@@ -15,8 +15,11 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import { toast } from "react-toastify";
 import UpdatePost from "./UpdatePost";
+import { useAuthHook } from "../hooks/useAuthHook";
+import api from "../api/api";
 
 const Post = ({ post, isUserPost, onDelete }) => {
+  const {userId} = useAuthHook();
   const [image, setImage] = useState(null);
   const [isOpen, setIsOpen] = useState(false);
   const [showModal, setShowModal] = useState(false);
@@ -30,20 +33,10 @@ const Post = ({ post, isUserPost, onDelete }) => {
   const [userImage, setUserImage] = useState({});
   const [username, setUsername] = useState({});
 
- 
-const getUserId = () => {
-  if (typeof window !== 'undefined') {
-    return localStorage.getItem('userId');
-  }
-  return null;
-};
 
-const getToken = () => {
-  if (typeof window !== 'undefined') {
-    return localStorage.getItem('token');
-  }
-  return null;
-};
+ 
+
+
 
   const saveLike = (liked, disliked) => {
     localStorage.setItem(
@@ -63,8 +56,6 @@ const getToken = () => {
   };
 
   const commentsHandler = async () => {
-    const userId = getUserId();
-    const token = getToken();
     const postId = post.postId;
 
     if (!comments.trim()) {
@@ -73,10 +64,9 @@ const getToken = () => {
     }
 
     try {
-      const response = await axios.post(
-        `${base_url}/comments/user/${userId}/post/${postId}`,
+      const response = await api.post(
+        `/comments/user/${userId}/post/${postId}`,
         { comments: comments },
-        { headers: { Authorization: `Bearer ${token}` } }
       );
 
       console.log("Comment success", response.data);
@@ -103,14 +93,12 @@ const getToken = () => {
   };
 
   const getAllCommentsFromServer = async () => {
-    const token = getToken();
     const postId = post.postId;
 
-    if (!token || !postId) return;
+    if (!postId) return;
 
     try {
-      const response = await axios.get(`${base_url}/comments/post/${postId}`, {
-        headers: { Authorization: `Bearer ${token}` },
+      const response = await api.get(`/comments/post/${postId}`, {
         params: { pageNumber: 0, pageSize: 90 },
       });
       const { data } = response.data;
@@ -130,16 +118,13 @@ const getToken = () => {
     }
   };
 
-  const handleDelete = () => {
+  const handleDelete =  async() => {
     if (!window.confirm("Are you sure you want to delete this post?")) {
       return;
     }
 
-    axios
-      .delete(`${base_url}/posts/${post.postId}`, {
-        headers: {
-          Authorization: `Bearer ${getToken()}`,
-        },
+   await api
+      .delete(`/posts/${post.postId}`, {
       })
       .then((response) => {
         console.log(response.data);
@@ -155,13 +140,10 @@ const getToken = () => {
   };
 
   const handleLikePost = async () => {
-    const token = getToken();
-    const userId = getUserId();
     const postId = post.postId;
 
     try {
-      const response = await axios.post(`${base_url}/likePost`, null, {
-        headers: { Authorization: `Bearer ${token}` },
+      const response = await api.post(`/likePost`, null, {
         params: { userId, postId },
       });
 
@@ -181,13 +163,10 @@ const getToken = () => {
   };
 
   const handleDislikePost = async () => {
-    const token = getToken();
-    const userId = getUserId();
     const postId = post.postId;
 
     try {
-      const response = await axios.post(`${base_url}/dislikePost`, null, {
-        headers: { Authorization: `Bearer ${token}` },
+      const response = await api.post(`/dislikePost`, null, {
         params: { userId, postId },
       });
 
@@ -206,31 +185,13 @@ const getToken = () => {
     }
   };
 
-  const fetchUserImage = async (imageName, userId) => {
-    // const token = getToken();
-    
-    // if (!imageName || !token) return;
-
-    // try {
-    //   const response = await axios.get(`${base_url}/users/getImage/${imageName}`, {
-    //     headers: { Authorization: `Bearer ${token}` },
-    //     responseType: "blob",
-    //   });
-    //   const imageURL = URL.createObjectURL(response.data);
-    //   setUserImage((prevImage) => ({ ...prevImage, [userId]: imageURL }));
-    // } catch (error) {
-    //   console.log("Error fetching user image:", error);
-    // }
-  };
 
   const fetchUserComment = async (userId) => {
-    const token = getToken();
 
-    if (!userId || !token) return;
+    if (!userId) return;
 
     try {
-      const response = await axios.get(`${base_url}/users/${userId}`, {
-        headers: { Authorization: `Bearer ${token}` },
+      const response = await api.get(`/users/${userId}`, {
       });
       const { image, username: userName, imageUrl } = response.data;
       
@@ -250,18 +211,14 @@ const getToken = () => {
   };
 
   const fetchUserDetails = async () => {
-    const token = getToken();
 
-    if (!post?.userId || !token) {
-      console.log("No userId or token available");
+    if (!post?.userId) {
+      console.log("userId is not  available");
       return;
     }
 
     try {
-      const response = await axios.get(`${base_url}/users/${post.userId}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+      const response = await api.get(`/users/${post.userId}`, {
       });
       setUser(response.data);
     } catch (err) {

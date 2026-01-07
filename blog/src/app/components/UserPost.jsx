@@ -3,25 +3,15 @@ import { useEffect, useState } from "react";
 import base_url from "../api/base_url";
 import Post from "./Post";
 import Link from "next/link";
+import { useAuthHook } from "../hooks/useAuthHook";
+import api from "../api/api";
 
 export default function UserPost() {
   const [userPost, setUserPost] = useState([]);
+  const {userId} = useAuthHook();
   const [pageNumber, setPageNumber] = useState(0);
   const [lastPage, setLastPage] = useState(false);
 
-  const getUserId = () => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("userId");
-    }
-    return null;
-  };
-
-  const getToken = () => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("token");
-    }
-    return null;
-  };
 
   const handleDeletePost = (postId) => {
     setUserPost((prevPosts) => {
@@ -30,11 +20,9 @@ export default function UserPost() {
   };
 
   const getUserPostFromServer = async () => {
-    await axios
-      .get(`${base_url}/posts/user/${getUserId()}`, {
-        headers: {
-          Authorization: `Bearer ${getToken()}`,
-        },
+    await api
+      .get(`${base_url}/posts/user/${userId}`, {
+      
         params: {
           pageNumber: pageNumber,
           pageSize: 3,

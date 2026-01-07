@@ -1,15 +1,18 @@
 "use client";
 import axios from "axios";
-import { Fragment, useState } from "react";
+import { Fragment, useActionState, useState } from "react";
 import { Form, FormGroup, Input, Label } from "reactstrap";
 import base_url from "../api/base_url";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
 import { useCategory } from "../hooks/useCategory";
+import { useAuthHook } from "../hooks/useAuthHook";
+import api from "../api/api";
 
 export default function AddPost() {
   const { categories,  } = useCategory();
   const router = useRouter();
+  const {userId} = useAuthHook();
   const [postData, setPostData] = useState({
     postTitle: "",
     content: "",
@@ -34,9 +37,7 @@ export default function AddPost() {
 
   const postDataToServer = async() => {
      if (typeof window === 'undefined') return;
-     
-    const token = localStorage.getItem("token");
-    const userId = localStorage.getItem("userId");
+    
 
     const formData = new FormData();
     formData.append(
@@ -55,10 +56,9 @@ export default function AddPost() {
     formData.append("userId", userId);
     formData.append("categoryId", postData.categoryId);
 
-    await axios
-      .post(`${base_url}/posts`, formData, {
+    await api
+      .post(`/posts`, formData, {
         headers: {
-          Authorization: `Bearer ${token}`,
           "Content-Type": "multipart/form-data",
         },
       })

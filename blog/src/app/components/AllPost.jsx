@@ -8,10 +8,8 @@ import { Form, FormGroup, Input } from "reactstrap";
 import { useCategory } from "../hooks/useCategory";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faFilter, faSortAmountDown, faSortAmountUp, faSpinner } from "@fortawesome/free-solid-svg-icons";
+import api from "../api/api";
 
-const getToken = () => {
-  return localStorage.getItem("token");
-};
 
 const AllPost = () => {
   const router = useRouter();
@@ -30,15 +28,13 @@ const AllPost = () => {
 
     try {
         if (typeof window === 'undefined') return;
-      const token = getToken();
 
       const url =
         categoryId === 0
-          ? `${base_url}/posts`
-          : `${base_url}/posts/category/${categoryId}`;
+          ? `/posts`
+          : `/posts/category/${categoryId}`;
 
-      const response = await axios.get(url, {
-        headers: { Authorization: `Bearer ${token}` },
+      const response = await api.get(url, {
         params: {
           pageNumber,
           pageSize: 3,
@@ -65,40 +61,6 @@ const AllPost = () => {
     }
   };
 
-  //   const fetchPostsByCategory = async () => {
-  //     try {
-  //       const token = getToken();
-  //       console.log("CategoryId: ", categoryId);
-  //       const response = await axios.get(
-  //         `${base_url}/posts/category/${categoryId}`,
-  //         {
-  //           headers: {
-  //             Authorization: `Bearer ${token}`,
-  //           },
-  //           params: {
-  //             pageNumber,
-  //             pageSize: 3,
-  //             sortDir: "ascending",
-  //             sortBy: "postId",
-  //           },
-  //         }
-  //       );
-  //       console.log("Data of fetchPostsByCategory():", response.data);
-  //       const { data } = response.data;
-  //       // setPosts((prevPost) => {
-  //       //     const existingIds = new Set(prevPost.map((post) => post.postId));
-  //       //     const newPosts = data.filter((post) => !existingIds.has(post.postId));
-  //       //     return [...prevPost, ...newPosts];
-  //       // });
-  //       setPosts(data);
-
-  //       if (data.length === 0) {
-  //         setHasMorePosts(false);
-  //       }
-  //     } catch (error) {
-  //       console.error("Error fetching category posts:", error.response);
-  //     }
-  //   };
 
   const sortHandler = (criteria, direction) => {
     setSortBy(criteria);
@@ -108,9 +70,7 @@ const AllPost = () => {
     setHasMorePosts(true); // Allow fetching with new sort
   };
 
-  // useEffect(()=>{
-  //     setAllCategories();
-  // },[])
+  
   useEffect(() => {
     if (hasMorePosts && !loading) {
       fetchPosts();

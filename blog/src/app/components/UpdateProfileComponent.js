@@ -1,13 +1,17 @@
 "use client";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { toast } from "react-toastify";
 import { Form, FormGroup, Input, Label } from "reactstrap";
 import base_url from "../api/base_url";
 import axios from "axios";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faClose } from "@fortawesome/free-solid-svg-icons";
+import api from "../api/api";
+import { userAgent } from "next/server";
+import { useAuthHook } from "../hooks/useAuthHook";
 
-export default function UpdateProfileComponent({ userDetails, onClose }) {
+export default function UpdateProfileComponent({onClose }) {
+  const {userId,userDetails, fetchUserById} = useAuthHook();
   const handleFileChange = (e) => {
     setUser({ ...user, image: e.target.files[0] });
   };
@@ -28,21 +32,9 @@ export default function UpdateProfileComponent({ userDetails, onClose }) {
     image: "",
   });
 
-  const getUserId = () => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("userId");
-    }
-    return null;
-  };
 
-  const getToken = () => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("token");
-    }
-    return null;
-  };
 
-  const updateProfile = () => {
+  const updateProfile =async () => {
     const formData = new FormData();
     formData.append(
       "user",
@@ -63,10 +55,8 @@ export default function UpdateProfileComponent({ userDetails, onClose }) {
       formData.append("image", user.image);
     }
 
-    axios
-      .put(`${base_url}/users/${getUserId()}`, formData, {
-        headers: { Authorization: `Bearer ${getToken()}` },
-      })
+   await api
+      .put(`/users/${userId}`, formData, )
       .then((response) => {
         console.log(response.data);
         setUser({
@@ -99,6 +89,10 @@ export default function UpdateProfileComponent({ userDetails, onClose }) {
     e.preventDefault();
     updateProfile();
   };
+
+  useEffect(()=>{
+    fetchUserById();
+  },[])
 
   return (
     <div className="min-h-screen items-center flex justify-center">

@@ -17,26 +17,15 @@ import {
   faPlus,
   faSignOut,
 } from "@fortawesome/free-solid-svg-icons";
-import UpdateProfile from "../updateprofile/page";
 import { logout } from "../services/AuthService";
+import api from "../api/api";
+import { useAuthHook } from "../hooks/useAuthHook";
+import UpdateProfilePage from "../updateprofile/page";
 
-
-const getUserId = () => {
-  if (typeof window !== 'undefined') {
-    return localStorage.getItem('userId');
-  }
-  return null;
-};
-
-const getToken = () => {
-  if (typeof window !== 'undefined') {
-    return localStorage.getItem('token');
-  }
-  return null;
-};
 
 const Profile = () => {
   const router = useRouter();
+  const {userId} = useAuthHook();
   const [active, setActive] = useState("posts");
   const [showModel, setShowModel] = useState(false);
   const [userDetails, setUserDetails] = useState({
@@ -54,9 +43,8 @@ const Profile = () => {
 
   const handleLogout = async() => {
      if (typeof window === 'undefined') return;
-    const token = getToken();
     try{
-      const response = await logout(token,router);
+       await logout(router);
       toast.success("Logout successful")
     }catch(err){
       console.log("Error in handleLogout: ",err.response?.data);
@@ -65,41 +53,31 @@ const Profile = () => {
   };
 
   const getUserDetails = async() => {
-    const id = getUserId();
+  if (!userId) {
+    console.log("No user ID found");
+    return;
+  }
 
-    if (!id) {
-      console.log("No user ID found");
-      return;
+  try {
+    const response = await api.get(`/users/${userId}`);
+    const { id, username, email, image, phoneNumber, description, imageUrl } = response.data;
+    setUserDetails({
+      id,
+      username,
+      email,
+      image,
+      phoneNumber,
+      description,
+      imageUrl
+    });
+  } catch (error) {
+    console.log(error.response?.data || error.message);
+    if (error.response?.status === 401) {
+      localStorage.removeItem("userId");
+      router.push("/");
     }
-
-   await axios
-      .get(`${base_url}/users/${id}`, {
-        headers: {
-          Authorization: `Bearer ${getToken()}`,
-        },
-      })
-      .then((response) => {
-        const { id, username, email, image, phoneNumber, description,imageUrl } =
-          response.data;
-        setUserDetails({
-          id,
-          username,
-          email,
-          image,
-          phoneNumber,
-          description,
-          imageUrl
-        });
-      })
-      .catch((error) => {
-        console.log(error.response?.data || error.message);
-        if (error.response?.status === 401) {
-          localStorage.removeItem("token");
-          localStorage.removeItem("userId");
-          router.push("/");
-        }
-      });
-  };
+  }
+};
 
 
   const handleAddPost = () => {
@@ -108,13 +86,10 @@ const Profile = () => {
 
   useEffect(() => {
      if (typeof window === 'undefined') return;
-    const token = localStorage.getItem("token");
-    if (!token) {
-      router.push("/");
-    } else {
-      getUserDetails();
-    }
-  }, [router]);
+   if(userId){
+    getUserDetails();
+   }
+  }, [userId]);
 
 
 
@@ -250,9 +225,9 @@ const Profile = () => {
 
       {showModel && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <UpdateProfile
+          <UpdateProfilePage
             userDetails={userDetails}
-            model={() => setShowModel(false)}
+            onClose={() => setShowModel(false)}
           />
         </div>
       )}

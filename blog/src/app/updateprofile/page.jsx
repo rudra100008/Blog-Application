@@ -5,34 +5,21 @@ import axios from 'axios'
 import base_url from "../api/base_url"
 import { ToastContainer } from 'react-toastify'
 import UpdateProfileComponent from '../components/UpdateProfileComponent'
+import { useAuthHook } from '../hooks/useAuthHook'
+import { logout } from '../services/AuthService'
 
-export default function UpdateProfilePage() {
-  const router = useRouter()
+export default function UpdateProfilePage({onClose}) {
+  const router = useRouter();
+  const {userId} = useAuthHook();
   const [userDetails, setUserDetails] = useState(null)
   const [loading, setLoading] = useState(true)
-
-
-const getUserId = () => {
-  if (typeof window !== 'undefined') {
-    return localStorage.getItem('userId');
-  }
-  return null;
-};
-
-const getToken = () => {
-  if (typeof window !== 'undefined') {
-    return localStorage.getItem('token');
-  }
-  return null;
-};
 
   useEffect(() => {
     const fetchUserDetails = async () => {
        if (typeof window === 'undefined') return;
-      const token = getToken()
-      const userId = getUserId()
       
-      if (!token || !userId) {
+      if (!userId) {
+        logout(router);
         router.push('/login')
         return
       }
@@ -45,8 +32,8 @@ const getToken = () => {
       } catch (error) {
         console.error('Error fetching user details:', error)
         if (error.response?.status === 401) {
-          localStorage.removeItem('token')
           localStorage.removeItem('userId')
+          logout(router);
           router.push('/login')
         }
       } finally {
@@ -55,7 +42,7 @@ const getToken = () => {
     }
 
     fetchUserDetails()
-  }, [router])
+  }, [router,userId])
 
   if (loading) {
     return (
@@ -63,10 +50,6 @@ const getToken = () => {
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
       </div>
     )
-  }
-
-  if (!userDetails) {
-    return null
   }
 
   const handleCloseModal = () => {
@@ -78,7 +61,7 @@ const getToken = () => {
       <ToastContainer />
       <UpdateProfileComponent 
         userDetails={userDetails} 
-        onClose={handleCloseModal}
+        onClose={onClose}
       />
     </>
   )
