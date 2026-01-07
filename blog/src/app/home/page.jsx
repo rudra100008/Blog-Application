@@ -34,7 +34,7 @@ export default function Home() {
     }
 
     try {
-      const response = await api.get(`${base_url}/users/${userId}`);
+      const response = await api.get(`/users/${userId}`);
 
       const {
         id,
