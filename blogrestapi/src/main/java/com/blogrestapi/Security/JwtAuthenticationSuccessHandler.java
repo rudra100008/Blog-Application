@@ -24,29 +24,35 @@ import java.util.Map;
 public class JwtAuthenticationSuccessHandler implements AuthenticationSuccessHandler {
     private final JWTTokenHelper jwtTokenHelper;
     private final UserDetailsService userDetailsService;
-    @Value("${app.environment.production}")
-    private String environment;
 
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException, ServletException {
         UserDetails userDetails = this.userDetailsService.loadUserByUsername(authentication.getName());
-
-        boolean isProduction = "prod".equals(environment);
         String token = jwtTokenHelper.generateToken(userDetails);
-        Cookie cookie = new Cookie("token",token);
+        
+        String environment = System.getenv("ENV") != null ? System.getenv("ENV") : "dev";
+        boolean isProduction = "prod".equals(environment) || "production".equals(environment);
+
+        // Create cookie
+        Cookie cookie = new Cookie("token", token);
         cookie.setHttpOnly(true);
         cookie.setSecure(isProduction);
         cookie.setPath("/");
-        cookie.setMaxAge(24*60*60); //1 day
+        cookie.setMaxAge(24 * 60 * 60);
 
-        if(isProduction){
-            response.setHeader("Set-Cookie",String.format(
-                    "token=%s; Path=/; Max-Age=%d; HttpOnly;Secure;SameSite=None",
-                    token,24*60*60
-            ));
-        }else {
-            response.addCookie(cookie);
+        // CRITICAL: Different SameSite settings for different environments
+        if (isProduction) {
+            // For production with HTTPS
+            cookie.setAttribute("SameSite", "None");
+            // Ensure domain is set if using cross-origin
+            // cookie.setDomain("yourdomain.com");
+        } else {
+            // For local development
+            cookie.setAttribute("SameSite", "Lax");
         }
+
+        response.addCookie(cookie);
+
         response.setStatus(HttpServletResponse.SC_OK);
         response.setContentType("application/json");
 

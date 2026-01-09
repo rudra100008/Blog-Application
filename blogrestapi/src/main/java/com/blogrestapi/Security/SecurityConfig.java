@@ -23,6 +23,7 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Configuration
@@ -96,15 +97,28 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration corsConfig = new CorsConfiguration();
-        corsConfig.setAllowedOrigins(List.of("http://localhost:3000"));
+
+        List<String> allowedOrigins = new ArrayList<>();
+        allowedOrigins.add("http://localhost:3000");
+
+        // Add your production frontend URL
+        String frontendUrl = System.getenv("FRONTEND_URL");
+        if (frontendUrl != null && !frontendUrl.isEmpty()) {
+            allowedOrigins.add(frontendUrl);
+        }
+
+        corsConfig.setAllowedOrigins(allowedOrigins);
         corsConfig.setAllowedHeaders(List.of("*"));
-        corsConfig.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH"));
-        corsConfig.setAllowCredentials(true); // Allow cookies or authentication
-        corsConfig.setExposedHeaders(List.of("Set-Cookie","Authorization","X-XSRF-TOKEN"));
+        corsConfig.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
+        corsConfig.setAllowCredentials(true); // Allow cookies
+        corsConfig.setExposedHeaders(List.of("Set-Cookie", "Authorization", "X-XSRF-TOKEN"));
         corsConfig.setMaxAge(3600L);
-        
+
+        // IMPORTANT: For SameSite=None cookies
+        corsConfig.setAllowPrivateNetwork(true); // For local testing
+
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", corsConfig); // Apply to all paths
+        source.registerCorsConfiguration("/**", corsConfig);
         return source;
     }
 
