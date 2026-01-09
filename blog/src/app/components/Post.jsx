@@ -20,7 +20,7 @@ import api from "../api/api";
 import { useAuth } from "../contexts/useAuth";
 
 const Post = ({ post, isUserPost, onDelete }) => {
-  const {userId} = useAuth();
+  const { userId } = useAuth();
   const [image, setImage] = useState(null);
   const [isOpen, setIsOpen] = useState(false);
   const [showModal, setShowModal] = useState(false);
@@ -34,25 +34,24 @@ const Post = ({ post, isUserPost, onDelete }) => {
   const [userImage, setUserImage] = useState({});
   const [username, setUsername] = useState({});
 
-
- 
-
-
-
   const saveLike = (liked, disliked) => {
-    localStorage.setItem(
-      `post-${post.postId}-like`,
-      JSON.stringify({ liked, disliked })
-    );
+    if (typeof window !== "undefined") {
+      localStorage.setItem(
+        `post-${post.postId}-like`,
+        JSON.stringify({ liked, disliked })
+      );
+    }
   };
 
   const loadLikeSaved = () => {
-    const savedLike = JSON.parse(
-      localStorage.getItem(`post-${post.postId}-like`)
-    );
-    if (savedLike) {
-      setIsLiked(savedLike.liked);
-      setIsDisliked(savedLike.disliked);
+    if (typeof window !== "undefined") {
+      const savedLike = JSON.parse(
+        localStorage.getItem(`post-${post.postId}-like`)
+      );
+      if (savedLike) {
+        setIsLiked(savedLike.liked);
+        setIsDisliked(savedLike.disliked);
+      }
     }
   };
 
@@ -67,7 +66,7 @@ const Post = ({ post, isUserPost, onDelete }) => {
     try {
       const response = await api.post(
         `/comments/user/${userId}/post/${postId}`,
-        { comments: comments },
+        { comments: comments }
       );
 
       console.log("Comment success", response.data);
@@ -119,14 +118,13 @@ const Post = ({ post, isUserPost, onDelete }) => {
     }
   };
 
-  const handleDelete =  async() => {
+  const handleDelete = async () => {
     if (!window.confirm("Are you sure you want to delete this post?")) {
       return;
     }
 
-   await api
-      .delete(`/posts/${post.postId}`, {
-      })
+    await api
+      .delete(`/posts/${post.postId}`, {})
       .then((response) => {
         console.log(response.data);
         if (onDelete) {
@@ -186,22 +184,19 @@ const Post = ({ post, isUserPost, onDelete }) => {
     }
   };
 
-
   const fetchUserComment = async (userId) => {
-
     if (!userId) return;
 
     try {
-      const response = await api.get(`/users/${userId}`, {
-      });
+      const response = await api.get(`/users/${userId}`, {});
       const { image, username: userName, imageUrl } = response.data;
-      
+
       if (imageUrl) {
         setUserImage((prevImage) => ({ ...prevImage, [userId]: imageUrl }));
       } else if (image) {
         fetchUserImage(image, userId);
       }
-      
+
       setUsername((prevUsername) => ({
         ...prevUsername,
         [userId]: userName,
@@ -212,15 +207,13 @@ const Post = ({ post, isUserPost, onDelete }) => {
   };
 
   const fetchUserDetails = async () => {
-
     if (!post?.userId) {
       console.log("userId is not  available");
       return;
     }
 
     try {
-      const response = await api.get(`/users/${post.userId}`, {
-      });
+      const response = await api.get(`/users/${post.userId}`, {});
       setUser(response.data);
     } catch (err) {
       console.log("Error fetching user details:", err);
@@ -232,11 +225,11 @@ const Post = ({ post, isUserPost, onDelete }) => {
 
     const initializePost = async () => {
       loadLikeSaved();
-      
+
       if (post.userId) {
         await fetchUserDetails();
       }
-      
+
       if (post.postId) {
         await getAllCommentsFromServer();
       }
@@ -247,7 +240,7 @@ const Post = ({ post, isUserPost, onDelete }) => {
 
   // Fallback for user display
   const displayUsername = user?.username || "Unknown User";
-  const displayUserImage = user?.imageUrl ;
+  const displayUserImage = user?.imageUrl;
 
   return (
     <div className="flex justify-center">
@@ -260,18 +253,19 @@ const Post = ({ post, isUserPost, onDelete }) => {
                 src={displayUserImage}
                 alt={displayUsername}
                 className="w-12 h-12 rounded-full object-cover border-2 border-indigo-100"
-                
               />
               <div>
                 <h3 className="font-bold text-gray-800 hover:text-indigo-600 cursor-pointer transition-colors">
                   {displayUsername.toUpperCase()}
                 </h3>
                 <p className="text-xs text-gray-500">
-                  {post?.postDate ? new Date(post.postDate).toLocaleString("en-US", {
-                    month: "short",
-                    day: "numeric",
-                    year: "numeric",
-                  }) : "Unknown date"}
+                  {post?.postDate
+                    ? new Date(post.postDate).toLocaleString("en-US", {
+                        month: "short",
+                        day: "numeric",
+                        year: "numeric",
+                      })
+                    : "Unknown date"}
                 </p>
               </div>
             </div>
@@ -399,10 +393,7 @@ const Post = ({ post, isUserPost, onDelete }) => {
                         : "text-gray-600 hover:text-indigo-600"
                     }`}
                   >
-                    <FontAwesomeIcon
-                      icon={faThumbsUp}
-                      className="w-5 h-5"
-                    />
+                    <FontAwesomeIcon icon={faThumbsUp} className="w-5 h-5" />
                     <span className="font-medium text-sm">Like</span>
                   </button>
 
@@ -414,10 +405,7 @@ const Post = ({ post, isUserPost, onDelete }) => {
                         : "text-gray-600 hover:text-red-600"
                     }`}
                   >
-                    <FontAwesomeIcon
-                      icon={faThumbsDown}
-                      className="w-5 h-5"
-                    />
+                    <FontAwesomeIcon icon={faThumbsDown} className="w-5 h-5" />
                     <span className="font-medium text-sm">Dislike</span>
                   </button>
                 </>
@@ -451,7 +439,6 @@ const Post = ({ post, isUserPost, onDelete }) => {
                   src={displayUserImage}
                   alt="Your avatar"
                   className="w-10 h-10 rounded-full object-cover"
-                 
                 />
                 <div className="flex-1">
                   <textarea
@@ -482,17 +469,18 @@ const Post = ({ post, isUserPost, onDelete }) => {
                     className="flex items-start space-x-3 bg-gray-50 p-4 rounded-xl hover:bg-gray-100 transition-colors"
                   >
                     <img
-                      src={userImage[comment.userId] }
+                      src={userImage[comment.userId]}
                       alt={username[comment.userId] || "User"}
                       className="w-10 h-10 rounded-full object-cover"
-                     
                     />
                     <div className="flex-1">
                       <div className="flex items-center space-x-2 mb-1">
                         <h4 className="font-semibold text-gray-800 text-sm">
                           {username[comment.userId] || "Unknown User"}
                         </h4>
-                        <span className="text-xs text-gray-500">· Just now</span>
+                        <span className="text-xs text-gray-500">
+                          · Just now
+                        </span>
                       </div>
                       <p className="text-gray-700 text-sm leading-relaxed">
                         {comment.comments}

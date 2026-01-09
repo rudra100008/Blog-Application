@@ -7,7 +7,6 @@ import { useRouter } from "next/navigation"
 export const useAuthHook = () => {
     const router = useRouter();
     
-    // Initialize as null
     const [userId, setUserId] = useState(null);
     const [isHydrated, setIsHydrated] = useState(false);
     
@@ -23,12 +22,12 @@ export const useAuthHook = () => {
 
     const [userDetails, setUserDetails] = useState({});
 
-    // Hydrate userId from localStorage only on client side
+    // This useEffect runs only on client side
     useEffect(() => {
+        setIsHydrated(true);
         const storedUserId = localStorage.getItem('userId');
         console.log("Initializing userId from localStorage:", storedUserId);
         setUserId(storedUserId);
-        setIsHydrated(true);
     }, []);
 
     const loginUser = async() => {

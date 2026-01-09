@@ -4,19 +4,16 @@ import { useCallback, useEffect, useState } from "react";
 import AllPost from "../components/AllPost";
 import Navbar from "../components/Navbar";
 import Link from "next/link";
-import axios from "axios"; // Import axios
-import base_url from "../api/base_url";
 import { ToastContainer } from "react-toastify";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faLightbulb, faPenToSquare } from "@fortawesome/free-solid-svg-icons";
-import { useAuthHook } from "../hooks/useAuthHook";
-import api from "../api/api";
 import { useAuth } from "../contexts/useAuth";
+import api from "../api/api";
 
 export default function Home() {
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
-  const { userId } = useAuth();
+  const [loading, setLoading] = useState(true);
+  const { userId, isHydrated } = useAuth();
   const [userDetails, setUserDetails] = useState({
     id: null,
     username: "",
@@ -31,6 +28,7 @@ export default function Home() {
     
     if (!userId) {
       console.log("No user ID found");
+      setLoading(false);
       return;
     }
 
@@ -60,20 +58,23 @@ export default function Home() {
     } catch (error) {
       console.log(error.response?.data || error.message);
       if (error.response?.status === 401) {
-         if (typeof window !== 'undefined') {
-          localStorage.removeItem("userId");
-        }
+        localStorage.removeItem("userId");
       }
     } finally {
       setLoading(false);
     }
-  },[userId]);
+  }, [userId]);
 
   useEffect(() => {
-    if (userId && !userDetails.id) {
+    if (isHydrated && userId && !userDetails.id) {
       getUserDetails();
     }
-  }, [userDetails.id,userId]);
+  }, [userId, userDetails.id, getUserDetails, isHydrated]);
+
+  // Don't render anything during SSR or before hydration
+  if (!isHydrated) {
+    return null; // Or a loading skeleton
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">

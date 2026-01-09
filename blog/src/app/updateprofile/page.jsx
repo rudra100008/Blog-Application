@@ -33,7 +33,9 @@ export default function UpdateProfilePage({onClose}) {
       } catch (error) {
         console.error('Error fetching user details:', error)
         if (error.response?.status === 401) {
-          localStorage.removeItem('userId')
+          if(typeof window !== 'undefined'){
+             localStorage.removeItem('userId')
+          }
           logout(router);
           router.push('/login')
         }

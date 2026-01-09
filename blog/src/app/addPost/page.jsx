@@ -1,19 +1,18 @@
 "use client";
 import axios from "axios";
-import { Fragment, useActionState, useState } from "react";
+import { Fragment, useState, useEffect } from "react";
 import { Form, FormGroup, Input, Label } from "reactstrap";
 import base_url from "../api/base_url";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
 import { useCategory } from "../hooks/useCategory";
-import { useAuthHook } from "../hooks/useAuthHook";
 import api from "../api/api";
 import { useAuth } from "../contexts/useAuth";
 
 export default function AddPost() {
-  const { categories,  } = useCategory();
+  const { categories } = useCategory();
   const router = useRouter();
-  const {userId} = useAuth();
+  const { userId, isHydrated } = useAuth();
   const [postData, setPostData] = useState({
     postTitle: "",
     content: "",
@@ -28,6 +27,14 @@ export default function AddPost() {
     categoryId: "",
   });
 
+  // Redirect if not authenticated
+  useEffect(() => {
+    if (isHydrated && !userId) {
+      toast.error("Please login to create a post");
+      router.push('/login');
+    }
+  }, [userId, isHydrated, router]);
+
   const handleChange = (e) => {
     setPostData({ ...postData, [e.target.name]: e.target.value });
   };
@@ -37,12 +44,10 @@ export default function AddPost() {
   };
 
   const postDataToServer = async() => {
-    if (typeof window === 'undefined' || !userId) {
-    toast.error("Please login to create a post");
-    router.push('/login');
-    return;
-  }
-    
+    if (!userId) {
+      toast.error("Please login to create a post");
+      return;
+    }
 
     const formData = new FormData();
     formData.append(
@@ -82,6 +87,7 @@ export default function AddPost() {
           categoryId: "",
         });
         toast.success("Post created successfully!");
+        router.push('/home'); // Redirect after success
       })
       .catch((error) => {
         console.error(error.response.data);
@@ -116,8 +122,24 @@ export default function AddPost() {
     router.back();
   };
 
+  // Don't render form if not hydrated or not logged in
+  if (!isHydrated) {
+    return null;
+  }
+
+  if (!userId) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Redirecting to login...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="flex justify-center items-center bg-gray-50 min-h-screen ">
+    <div className="flex justify-center items-center bg-gray-50 min-h-screen">
       <Fragment>
         <Form
           noValidate
@@ -144,7 +166,7 @@ export default function AddPost() {
               placeholder="Enter your post title"
               invalid={validationError.postTitle}
               required
-              className=" rounded-lg  "
+              className="rounded-lg"
             />
             <p className="text-red-500 text-sm mt-1">
               {validationError.postTitle}
@@ -165,7 +187,7 @@ export default function AddPost() {
               value={postData.content}
               onChange={handleChange}
               placeholder="Write your content here"
-              className="h-32  rounded-lg "
+              className="h-32 rounded-lg"
               required
               invalid={validationError.content}
             />
@@ -185,7 +207,7 @@ export default function AddPost() {
               {postData.image && (
                 <img
                   src={URL.createObjectURL(postData.image)}
-                  alt=""
+                  alt="Preview"
                   className="w-16 h-16 rounded-full border object-cover"
                 />
               )}
@@ -195,7 +217,7 @@ export default function AddPost() {
                 id="image"
                 invalid={validationError.image}
                 onChange={handleFileChange}
-                className=" rounded-lg "
+                className="rounded-lg"
               />
             </div>
             <p className="text-red-500 text-sm mt-1">{validationError.image}</p>
@@ -216,16 +238,16 @@ export default function AddPost() {
               onChange={handleChange}
               invalid={validationError.categoryId}
               required
-              className=" rounded-lg"
+              className="rounded-lg"
             >
               <option value="" disabled>
                 Choose a category
               </option>
-              {
-                categories && categories.length > 0 && categories.map((category,index)=>(
-                     <option key={index} value={category.categoryId}>{category.categoryTitle}</option>
-                ))
-              }
+              {categories && categories.length > 0 && categories.map((category,index) => (
+                <option key={index} value={category.categoryId}>
+                  {category.categoryTitle}
+                </option>
+              ))}
             </Input>
             <p className="text-red-500 text-sm mt-1">
               {validationError.categoryId}
@@ -235,7 +257,6 @@ export default function AddPost() {
           <FormGroup className="mt-6 flex justify-between">
             <button
               type="submit"
-              onClick={() => router.push("/home")}
               className="bg-blue-500 text-white px-5 py-2 font-semibold rounded-lg shadow-md hover:bg-blue-600 transition-transform transform hover:scale-105"
             >
               Post
