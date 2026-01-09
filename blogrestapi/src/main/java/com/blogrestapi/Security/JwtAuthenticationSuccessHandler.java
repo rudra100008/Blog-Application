@@ -29,7 +29,13 @@ public class JwtAuthenticationSuccessHandler implements AuthenticationSuccessHan
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException, ServletException {
         UserDetails userDetails = this.userDetailsService.loadUserByUsername(authentication.getName());
         String token = jwtTokenHelper.generateToken(userDetails);
-        
+
+        log.info("=== COOKIE SETUP ===");
+        log.info("Request Origin: {}", request.getHeader("Origin"));
+        log.info("Request Host: {}", request.getHeader("Host"));
+        log.info("Is Secure Request: {}", request.isSecure());
+
+
        String origin = request.getHeader("Origin");
        boolean isProduction = origin != null && (origin.contains("onrender.com") || origin.startsWith("https://"));
 
@@ -38,7 +44,7 @@ public class JwtAuthenticationSuccessHandler implements AuthenticationSuccessHan
         if (isProduction) {
             // PRODUCTION: Render deployment (HTTPS)
             String cookieHeader = String.format(
-                    "token=%s; Path=/; Max-Age=%d; HttpOnly; Secure; SameSite=None; Domain=.onrender.com",
+                    "token=%s; Path=/; Max-Age=%d; HttpOnly; Secure; SameSite=None",
                     token,
                     24 * 60 * 60
             );

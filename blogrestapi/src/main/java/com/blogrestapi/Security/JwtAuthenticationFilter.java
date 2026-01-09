@@ -35,6 +35,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         return path.startsWith("/api/login")
                 || path.startsWith("/api/register")
+                || path.startsWith("/api/debug/**")
                 || path.startsWith("/swagger-ui/**")
                 || path.startsWith("/v3/api-docs/**")
                 || path.startsWith("/swagger-ui.html");
@@ -48,8 +49,19 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
 
         try {
+            String path = request.getServletPath();
+            if (path.startsWith("/api/login") ||
+                    path.startsWith("/api/register") ||
+                    path.startsWith("/api/debug") ||
+                    path.startsWith("/swagger") ||
+                    path.startsWith("/v3/api-docs")) {
+                log.info("Skipping filter for public path: {}", path);
+                filterChain.doFilter(request, response);
+                return;
+            }
             String username = null;
             String token = null;
+
             if (request.getCookies() != null) {
                 log.info("==== Jwt Filter Debug ====");
                 log.info("Cookie found:{} ", request.getCookies().length);

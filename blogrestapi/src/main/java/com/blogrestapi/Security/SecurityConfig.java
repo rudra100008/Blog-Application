@@ -40,7 +40,7 @@ public class SecurityConfig {
             "/swagger-ui/**",
             "/swagger-ui.html",
             "/swagger-resources/**",
-            "/api/login", "/api/register",
+            "/api/login", "/api/register","/api/debug/**",
     };
 
     private final JWTAuthenticationEntryPoint entryPoint;
@@ -100,6 +100,8 @@ public class SecurityConfig {
 
         List<String> allowedOrigins = new ArrayList<>();
         allowedOrigins.add("http://localhost:3000");
+        allowedOrigins.add("https://blog-application-u7ov.onrender.com");
+        allowedOrigins.add("*");
 
         // Add your production frontend URL
         String frontendUrl = System.getenv("FRONTEND_URL");
@@ -111,7 +113,8 @@ public class SecurityConfig {
         corsConfig.setAllowedHeaders(List.of("*"));
         corsConfig.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         corsConfig.setAllowCredentials(true); // Allow cookies
-        corsConfig.setExposedHeaders(List.of("Set-Cookie", "Authorization", "X-XSRF-TOKEN"));
+        corsConfig.setExposedHeaders(List.of("Set-Cookie", "Authorization", "Access-Control-Allow-Credentials",
+                "Access-Control-Allow-Origin"));
         corsConfig.setMaxAge(3600L);
 
         // IMPORTANT: For SameSite=None cookies
