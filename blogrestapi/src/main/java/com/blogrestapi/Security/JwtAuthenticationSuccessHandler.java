@@ -30,28 +30,30 @@ public class JwtAuthenticationSuccessHandler implements AuthenticationSuccessHan
         UserDetails userDetails = this.userDetailsService.loadUserByUsername(authentication.getName());
         String token = jwtTokenHelper.generateToken(userDetails);
         
-        String environment = System.getenv("ENV") != null ? System.getenv("ENV") : "dev";
-        boolean isProduction = "prod".equals(environment) || "production".equals(environment);
+       String origin = request.getHeader("Origin");
+       boolean isProduction = origin != null && (origin.contains("onrender.com") || origin.startsWith("https://"));
 
-        // Create cookie
-        Cookie cookie = new Cookie("token", token);
-        cookie.setHttpOnly(true);
-        cookie.setSecure(isProduction);
-        cookie.setPath("/");
-        cookie.setMaxAge(24 * 60 * 60);
+        log.info("Setting cookie for origin: {}, Production: {}", origin, isProduction);
 
-        // CRITICAL: Different SameSite settings for different environments
         if (isProduction) {
-            // For production with HTTPS
-            cookie.setAttribute("SameSite", "None");
-            // Ensure domain is set if using cross-origin
-            // cookie.setDomain("yourdomain.com");
+            // PRODUCTION: Render deployment (HTTPS)
+            String cookieHeader = String.format(
+                    "token=%s; Path=/; Max-Age=%d; HttpOnly; Secure; SameSite=None; Domain=.onrender.com",
+                    token,
+                    24 * 60 * 60
+            );
+            response.addHeader("Set-Cookie", cookieHeader);
+            log.info("Set production cookie with SameSite=None");
         } else {
-            // For local development
-            cookie.setAttribute("SameSite", "Lax");
+            // DEVELOPMENT: Localhost
+            Cookie cookie = new Cookie("token", token);
+            cookie.setHttpOnly(true);
+            cookie.setSecure(false); // false for HTTP localhost
+            cookie.setPath("/");
+            cookie.setMaxAge(24 * 60 * 60);
+            response.addCookie(cookie);
+            log.info("Set development cookie");
         }
-
-        response.addCookie(cookie);
 
         response.setStatus(HttpServletResponse.SC_OK);
         response.setContentType("application/json");
