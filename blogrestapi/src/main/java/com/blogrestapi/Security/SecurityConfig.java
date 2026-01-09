@@ -70,7 +70,7 @@ public class SecurityConfig {
                 .logout(logout->logout
                         .logoutUrl("/api/logout")
                         .logoutSuccessHandler(jsonLogoutHandler)
-                        .deleteCookies("JSESSIONID")
+                        .deleteCookies("token")
                         .invalidateHttpSession(true)); // Use the CorsConfigurationSource bean
 
 
@@ -101,7 +101,8 @@ public class SecurityConfig {
         corsConfig.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH"));
         corsConfig.setAllowCredentials(true); // Allow cookies or authentication
         corsConfig.setExposedHeaders(List.of("Set-Cookie","Authorization","X-XSRF-TOKEN"));
-
+        corsConfig.setMaxAge(3600L);
+        
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", corsConfig); // Apply to all paths
         return source;
