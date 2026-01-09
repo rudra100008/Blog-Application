@@ -122,7 +122,6 @@ export default function AddPost() {
     router.back();
   };
 
-  // Don't render form if not hydrated or not logged in
   if (!isHydrated) {
     return null;
   }

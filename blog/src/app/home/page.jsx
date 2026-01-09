@@ -58,7 +58,9 @@ export default function Home() {
     } catch (error) {
       console.log(error.response?.data || error.message);
       if (error.response?.status === 401) {
-        localStorage.removeItem("userId");
+         if(typeof window !== 'undefined'){
+            localStorage.removeItem('userId');
+        }
       }
     } finally {
       setLoading(false);
