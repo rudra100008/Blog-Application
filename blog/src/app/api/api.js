@@ -6,6 +6,9 @@ const api = axios.create({ baseURL: baseUrl, withCredentials: true });
 
 api.interceptors.request.use(
   (config) => {
+    console.log('Request URL:', config.url);
+    console.log('With credentials:', config.withCredentials);
+    
     return config;
   },
   (error) => {
@@ -38,10 +41,9 @@ api.interceptors.response.use(
         if(!toast.isActive("unauthorized-error")){
             toast.error(message,{toastId:"unauthorized-error"});
         }
-
-        setTimeout(()=>{
-             document.location.href = "/"
-        },2000)
+        // setTimeout(()=>{
+        //      document.location.href = "/"
+        // },2000)
       }
     }
     return Promise.reject(err);
