@@ -37,7 +37,11 @@ export default function AddPost() {
   };
 
   const postDataToServer = async() => {
-     if (typeof window === 'undefined') return;
+    if (typeof window === 'undefined' || !userId) {
+    toast.error("Please login to create a post");
+    router.push('/login');
+    return;
+  }
     
 
     const formData = new FormData();

@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation"
 export const useAuthHook = () => {
     const router = useRouter();
     
-    // Initialize as null, will be set on client side
+    // Initialize as null
     const [userId, setUserId] = useState(null);
     const [isHydrated, setIsHydrated] = useState(false);
     
@@ -23,15 +23,13 @@ export const useAuthHook = () => {
 
     const [userDetails, setUserDetails] = useState({});
 
-    // Hydrate userId from localStorage on client side only
-    // useEffect(() => {
-    //     if (typeof window !== 'undefined') {
-    //         const storedUserId = localStorage.getItem('userId');
-    //         console.log("Initializing userId from localStorage:", storedUserId);
-    //         setUserId(storedUserId);
-    //         setIsHydrated(true);
-    //     }
-    // }, []);
+    // Hydrate userId from localStorage only on client side
+    useEffect(() => {
+        const storedUserId = localStorage.getItem('userId');
+        console.log("Initializing userId from localStorage:", storedUserId);
+        setUserId(storedUserId);
+        setIsHydrated(true);
+    }, []);
 
     const loginUser = async() => {
         try {
@@ -39,9 +37,7 @@ export const useAuthHook = () => {
             const data = await login(user);
             console.log("Response of loginUser: ", data);
             
-            if (typeof window !== 'undefined') {
-                localStorage.setItem('userId', data.userId);
-            }
+            localStorage.setItem('userId', data.userId);
             setUserId(data.userId);
             
             router.push('/home');
@@ -66,9 +62,7 @@ export const useAuthHook = () => {
     };
 
     const logoutUser = () => {
-        if (typeof window !== 'undefined') {
-            localStorage.removeItem('userId');
-        }
+        localStorage.removeItem('userId');
         setUserId(null);
         setUserDetails({});
         router.push('/login');
@@ -88,9 +82,7 @@ export const useAuthHook = () => {
             
             // If unauthorized, clear the userId
             if(err?.response?.status === 401) {
-                if (typeof window !== 'undefined') {
-                    localStorage.removeItem('userId');
-                }
+                localStorage.removeItem('userId');
                 setUserId(null);
                 toast.error("Session expired. Please login again.");
                 router.push('/login');
@@ -103,7 +95,7 @@ export const useAuthHook = () => {
         user,
         validationErr,
         userDetails,
-        isHydrated, // Export this so components know when data is ready
+        isHydrated,
 
         setUserDetails,
         setUserId,
