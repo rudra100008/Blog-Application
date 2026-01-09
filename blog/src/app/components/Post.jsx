@@ -17,9 +17,10 @@ import { toast } from "react-toastify";
 import UpdatePost from "./UpdatePost";
 import { useAuthHook } from "../hooks/useAuthHook";
 import api from "../api/api";
+import { useAuth } from "../contexts/useAuth";
 
 const Post = ({ post, isUserPost, onDelete }) => {
-  const {userId} = useAuthHook();
+  const {userId} = useAuth();
   const [image, setImage] = useState(null);
   const [isOpen, setIsOpen] = useState(false);
   const [showModal, setShowModal] = useState(false);

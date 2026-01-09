@@ -5,10 +5,11 @@ import Post from "./Post";
 import Link from "next/link";
 import { useAuthHook } from "../hooks/useAuthHook";
 import api from "../api/api";
+import { useAuth } from "../contexts/useAuth";
 
 export default function UserPost() {
   const [userPost, setUserPost] = useState([]);
-  const {userId} = useAuthHook();
+  const {userId} = useAuth();
   const [pageNumber, setPageNumber] = useState(0);
   const [lastPage, setLastPage] = useState(false);
 

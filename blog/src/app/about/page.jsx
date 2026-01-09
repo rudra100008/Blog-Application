@@ -6,9 +6,10 @@ import axios from "axios"; // Import axios
 import base_url from "../api/base_url";
 import api from "../api/api";
 import { useAuthHook } from "../hooks/useAuthHook";
+import { useAuth } from "../contexts/useAuth";
 
 export default function About(){
-    const {userId} = useAuthHook();  
+    const {userId} = useAuth();  
     const router = useRouter();
     const [userDetails, setUserDetails] = useState({
       id: null,

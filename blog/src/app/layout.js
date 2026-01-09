@@ -3,6 +3,7 @@ import "./globals.css";
 import 'react-toastify/dist/ReactToastify.css';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { ToastContainer } from "react-toastify";
+import { AuthProvider } from "./contexts/useAuth";
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
   variable: "--font-geist-sans",
@@ -37,7 +38,9 @@ export default function RootLayout({ children }) {
                 pauseOnHover
                 theme="dark"
             />
-        {children}
+            <AuthProvider>
+              {children}
+            </AuthProvider>
       </body>
     </html>
   );

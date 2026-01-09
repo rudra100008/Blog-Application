@@ -7,10 +7,11 @@ import { ToastContainer } from 'react-toastify'
 import UpdateProfileComponent from '../components/UpdateProfileComponent'
 import { useAuthHook } from '../hooks/useAuthHook'
 import { logout } from '../services/AuthService'
+import { useAuth } from '../contexts/useAuth'
 
 export default function UpdateProfilePage({onClose}) {
   const router = useRouter();
-  const {userId} = useAuthHook();
+  const {userId} = useAuth();
   const [userDetails, setUserDetails] = useState(null)
   const [loading, setLoading] = useState(true)
 

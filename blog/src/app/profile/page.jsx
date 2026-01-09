@@ -21,11 +21,12 @@ import { logout } from "../services/AuthService";
 import api from "../api/api";
 import { useAuthHook } from "../hooks/useAuthHook";
 import UpdateProfilePage from "../updateprofile/page";
+import { useAuth } from "../contexts/useAuth";
 
 
 const Profile = () => {
   const router = useRouter();
-  const {userId} = useAuthHook();
+  const {userId} = useAuth();
   const [active, setActive] = useState("posts");
   const [showModel, setShowModel] = useState(false);
   const [userDetails, setUserDetails] = useState({

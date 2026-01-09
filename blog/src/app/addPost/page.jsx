@@ -8,11 +8,12 @@ import { useRouter } from "next/navigation";
 import { useCategory } from "../hooks/useCategory";
 import { useAuthHook } from "../hooks/useAuthHook";
 import api from "../api/api";
+import { useAuth } from "../contexts/useAuth";
 
 export default function AddPost() {
   const { categories,  } = useCategory();
   const router = useRouter();
-  const {userId} = useAuthHook();
+  const {userId} = useAuth();
   const [postData, setPostData] = useState({
     postTitle: "",
     content: "",

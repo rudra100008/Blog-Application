@@ -11,11 +11,12 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faLightbulb, faPenToSquare } from "@fortawesome/free-solid-svg-icons";
 import { useAuthHook } from "../hooks/useAuthHook";
 import api from "../api/api";
+import { useAuth } from "../contexts/useAuth";
 
 export default function Home() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const { userId } = useAuthHook();
+  const { userId } = useAuth();
   const [userDetails, setUserDetails] = useState({
     id: null,
     username: "",

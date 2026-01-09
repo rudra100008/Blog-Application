@@ -1,6 +1,6 @@
 'use client'
 import { useCallback, useEffect, useState } from "react"
-import { fetchUserDataById, login } from "../services/AuthService"
+import { fetchUserDataById, login, logout } from "../services/AuthService"
 import { toast } from "react-toastify"
 import { useRouter } from "next/navigation"
 
@@ -24,14 +24,14 @@ export const useAuthHook = () => {
     const [userDetails, setUserDetails] = useState({});
 
     // Hydrate userId from localStorage on client side only
-    useEffect(() => {
-        if (typeof window !== 'undefined') {
-            const storedUserId = localStorage.getItem('userId');
-            console.log("Initializing userId from localStorage:", storedUserId);
-            setUserId(storedUserId);
-            setIsHydrated(true);
-        }
-    }, []);
+    // useEffect(() => {
+    //     if (typeof window !== 'undefined') {
+    //         const storedUserId = localStorage.getItem('userId');
+    //         console.log("Initializing userId from localStorage:", storedUserId);
+    //         setUserId(storedUserId);
+    //         setIsHydrated(true);
+    //     }
+    // }, []);
 
     const loginUser = async() => {
         try {

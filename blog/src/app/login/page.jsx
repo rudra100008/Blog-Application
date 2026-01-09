@@ -15,10 +15,11 @@ import {
   faUser,
 } from "@fortawesome/free-solid-svg-icons";
 import { useAuthHook } from "../hooks/useAuthHook";
+import { useAuth } from "../contexts/useAuth";
 
 export default function Login() {
   const router = useRouter();
-  const { user, validationErr, setUser,setValidationErr, loginUser } = useAuthHook();
+  const { user, validationErr, setUser,setValidationErr, loginUser } = useAuth();
   const [sessionMessage, setSessionMessage] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);

@@ -15,12 +15,13 @@ import {
 import { toast } from "react-toastify";
 import { logout } from "../services/AuthService";
 import { useAuthHook } from "../hooks/useAuthHook";
+import { useAuth } from "../contexts/useAuth";
 
 const Navbar = ({ user }) => {
   const router = useRouter();
   const pathname = usePathname();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const {userId} = useAuthHook();
+  const {userId} = useAuth();
   const [loggedIn, setLoggedIn] = useState(false);
 
    const handleLogout = async() => {

@@ -9,9 +9,10 @@ import { faClose } from "@fortawesome/free-solid-svg-icons";
 import api from "../api/api";
 import { userAgent } from "next/server";
 import { useAuthHook } from "../hooks/useAuthHook";
+import { useAuth } from "../contexts/useAuth";
 
 export default function UpdateProfileComponent({onClose }) {
-  const {userId,userDetails, fetchUserById} = useAuthHook();
+  const {userId,userDetails, fetchUserById} = useAuth();
   const handleFileChange = (e) => {
     setUser({ ...user, image: e.target.files[0] });
   };
