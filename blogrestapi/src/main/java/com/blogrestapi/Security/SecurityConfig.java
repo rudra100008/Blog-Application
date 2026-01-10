@@ -101,7 +101,7 @@ public class SecurityConfig {
         List<String> allowedOrigins = new ArrayList<>();
         allowedOrigins.add("http://localhost:3000");
         allowedOrigins.add("https://blog-application-u7ov.onrender.com");
-        allowedOrigins.add("*");
+        allowedOrigins.add("https://blog-application-jmzl-git-vercel-deploy-ashum123s-projects.vercel.app");
 
         // Add your production frontend URL
         String frontendUrl = System.getenv("FRONTEND_URL");
