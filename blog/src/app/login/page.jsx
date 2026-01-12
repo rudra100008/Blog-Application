@@ -100,7 +100,7 @@ export default function Login() {
                   value={user.username}
                   onChange={newUser}
                   required
-                  className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 outline-none"
+                  className="block w-full pl-10 pr-3 py-3 text-gray-700 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 outline-none"
                 />
               </div>
               <div>
@@ -131,7 +131,7 @@ export default function Login() {
                   value={user.password}
                   onChange={newUser}
                   required
-                  className="block w-full pl-10 pr-12 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 outline-none"
+                  className="block w-full pl-10 pr-12 py-3 text-gray-700 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 outline-none"
                 />
                 <button
                   type="button"
