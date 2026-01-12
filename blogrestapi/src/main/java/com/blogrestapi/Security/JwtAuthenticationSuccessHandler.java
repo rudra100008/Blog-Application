@@ -8,6 +8,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseCookie;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -42,13 +44,21 @@ public class JwtAuthenticationSuccessHandler implements AuthenticationSuccessHan
         log.info("Setting cookie for origin: {}, Production: {}", origin, isProduction);
 
         if (isProduction) {
-            // PRODUCTION: Render deployment (HTTPS)
-            String cookieHeader = String.format(
-                    "token=%s; Path=/; Max-Age=%d; HttpOnly; Secure; SameSite=None",
-                    token,
-                    24 * 60 * 60
-            );
-            response.addHeader("Set-Cookie", cookieHeader);
+//            // PRODUCTION: Render deployment (HTTPS)
+//            String cookieHeader = String.format(
+//                    "token=%s; Path=/; Max-Age=%d; HttpOnly; Secure; SameSite=None",
+//                    token,
+//                    24 * 60 * 60
+//            );
+//            response.addHeader("Set-Cookie", cookieHeader);
+            ResponseCookie cookie = ResponseCookie.from("token",token)
+                    .httpOnly(true)
+                    .secure(true)
+                    .maxAge(86400)
+                    .sameSite("None")
+                    .path("/")
+                    .build();
+            response.addHeader(HttpHeaders.SET_COOKIE,cookie.toString());
             log.info("Set production cookie with SameSite=None");
         } else {
             // DEVELOPMENT: Localhost

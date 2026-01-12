@@ -98,16 +98,10 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration corsConfig = new CorsConfiguration();
 
-        List<String> allowedOrigins = new ArrayList<>();
-        allowedOrigins.add("http://localhost:3000");
-        allowedOrigins.add("https://blog-application-u7ov.onrender.com");
-        allowedOrigins.add("*");
-
-        // Add your production frontend URL
-        String frontendUrl = System.getenv("FRONTEND_URL");
-        if (frontendUrl != null && !frontendUrl.isEmpty()) {
-            allowedOrigins.add(frontendUrl);
-        }
+        List<String> allowedOrigins = List.of(
+                "http://localhost:3000",
+                "https://blog-application-jmzl.vercel.app"
+        );
 
         corsConfig.setAllowedOrigins(allowedOrigins);
         corsConfig.setAllowedHeaders(List.of("*"));
@@ -116,9 +110,6 @@ public class SecurityConfig {
         corsConfig.setExposedHeaders(List.of("Set-Cookie", "Authorization", "Access-Control-Allow-Credentials",
                 "Access-Control-Allow-Origin"));
         corsConfig.setMaxAge(3600L);
-
-        // IMPORTANT: For SameSite=None cookies
-        corsConfig.setAllowPrivateNetwork(true); // For local testing
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", corsConfig);
