@@ -4,6 +4,7 @@ import com.blogrestapi.Service.TokenBlackListService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -21,14 +22,10 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-import org.springframework.web.servlet.config.annotation.EnableWebMvc;
-
-import java.util.ArrayList;
 import java.util.List;
 
 @Configuration
 @EnableWebSecurity
-@EnableWebMvc
 @EnableMethodSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
@@ -48,8 +45,6 @@ public class SecurityConfig {
 
     private final JwtAuthenticationFilter filter;
 
-    private final TokenBlackListService tokenBlackListService;
-
 
     @Bean
     public BCryptPasswordEncoder passwordEncoder(){
@@ -61,6 +56,7 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable) // Disable CSRF
                 .cors(Customizer.withDefaults())
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(HttpMethod.OPTIONS,"/**").permitAll()
                         .requestMatchers(PUBLIC_URL).permitAll()
                         .anyRequest().authenticated())
                 .formLogin(AbstractHttpConfigurer::disable)
@@ -72,7 +68,8 @@ public class SecurityConfig {
                         .logoutUrl("/api/logout")
                         .logoutSuccessHandler(jsonLogoutHandler)
                         .deleteCookies("token")
-                        .invalidateHttpSession(true)); // Use the CorsConfigurationSource bean
+                        .invalidateHttpSession(true)
+                        .permitAll()); // Use the CorsConfigurationSource bean
 
 
         // Add JWT filter before UsernamePasswordAuthenticationFilter
