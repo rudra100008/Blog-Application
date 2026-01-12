@@ -40,6 +40,10 @@ public class JwtAuthenticationSuccessHandler implements AuthenticationSuccessHan
 
        String origin = request.getHeader("Origin");
        boolean isProduction = origin != null && (origin.contains("onrender.com") || origin.startsWith("https://"));
+        if (origin != null) {
+            response.setHeader("Access-Control-Allow-Origin", origin);
+            response.setHeader("Access-Control-Allow-Credentials", "true");
+        }
 
         log.info("Setting cookie for origin: {}, Production: {}", origin, isProduction);
 

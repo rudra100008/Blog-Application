@@ -104,8 +104,7 @@ public class SecurityConfig {
         corsConfig.setAllowedHeaders(List.of("*"));
         corsConfig.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         corsConfig.setAllowCredentials(true); // Allow cookies
-        corsConfig.setExposedHeaders(List.of("Set-Cookie", "Authorization", "Access-Control-Allow-Credentials",
-                "Access-Control-Allow-Origin"));
+        corsConfig.setExposedHeaders(List.of("Set-Cookie"));
         corsConfig.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
