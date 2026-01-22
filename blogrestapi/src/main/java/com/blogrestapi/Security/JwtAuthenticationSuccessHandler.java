@@ -59,7 +59,7 @@ public class JwtAuthenticationSuccessHandler implements AuthenticationSuccessHan
                     .httpOnly(true)
                     .secure(true)
                     .maxAge(86400)
-                    .sameSite("None")
+                    .sameSite("Lax")
                     .path("/")
                     .build();
             response.addHeader(HttpHeaders.SET_COOKIE,cookie.toString());
@@ -77,6 +77,7 @@ public class JwtAuthenticationSuccessHandler implements AuthenticationSuccessHan
 
         response.setStatus(HttpServletResponse.SC_OK);
         response.setContentType("application/json");
+        response.setCharacterEncoding("UTF-8");
 
         Map<String,Object> res = new HashMap<>();
         res.put("username",userDetails.getUsername());
