@@ -9,9 +9,10 @@ api.interceptors.request.use(
     console.log('Request URL:', config.url);
     console.log('With credentials:', config.withCredentials);
     const token = localStorage.getItem('token');
+    console.log("hasToken: ",token !== null);
     if(token){
       config.headers.Authorization = `Bearer ${token}`;
-      console.log('✓ Authorization header added to request');
+      console.log('✓ Authorization header added to request',token);
     }
     return config;
   },
