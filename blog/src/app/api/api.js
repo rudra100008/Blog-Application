@@ -12,7 +12,7 @@ api.interceptors.request.use(
     console.log("hasToken: ",token !== null);
     if(token){
       config.headers.Authorization = `Bearer ${token}`;
-      console.log('✓ Authorization header added to request',token);
+      console.log('✓ Authorization header added to request');
     }
     return config;
   },
