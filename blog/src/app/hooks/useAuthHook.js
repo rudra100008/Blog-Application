@@ -38,6 +38,7 @@ export const useAuthHook = () => {
       const data = await login(user);
       console.log("Response of loginUser: ", data);
       if (typeof window !== "undefined") {
+        localStorage.setItem("token",data.token);
         localStorage.setItem("userId", data.userId);
       }
       setUserId(data.userId);
@@ -66,6 +67,7 @@ export const useAuthHook = () => {
   const logoutUser = () => {
     if (typeof window !== "undefined") {
       localStorage.removeItem("userId");
+      localStorage.removeItem("token");
     }
     setUserId(null);
     setUserDetails({});

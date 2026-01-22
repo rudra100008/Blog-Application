@@ -8,7 +8,11 @@ api.interceptors.request.use(
   (config) => {
     console.log('Request URL:', config.url);
     console.log('With credentials:', config.withCredentials);
-    
+    const token = localStorage.getItem('token');
+    if(token){
+      config.headers.Authorization = `Bearer ${token}`;
+      console.log('✓ Authorization header added to request');
+    }
     return config;
   },
   (error) => {
