@@ -59,7 +59,7 @@ public class JwtAuthenticationSuccessHandler implements AuthenticationSuccessHan
                     .httpOnly(true)
                     .secure(true)
                     .maxAge(86400)
-                    .sameSite("Lax")
+                    .sameSite("None")
                     .path("/")
                     .build();
             response.addHeader(HttpHeaders.SET_COOKIE,cookie.toString());
