@@ -82,7 +82,7 @@ public class JwtAuthenticationSuccessHandler implements AuthenticationSuccessHan
         Map<String,Object> res = new HashMap<>();
         res.put("username",userDetails.getUsername());
         res.put("message","Login Successful");
-        res.put("token0",token);
+        res.put("token",token);
         request.setAttribute("AUTH_RESPONSE_DATA",res);
     }
 }
