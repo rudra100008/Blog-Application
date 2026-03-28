@@ -317,7 +317,7 @@ const AllPost = () => {
         {/* End of feed */}
         {!hasMorePosts && !loading && posts.length > 0 && (
           <div className="end-of-feed">
-            <span className="end-of-feed-label">— You're all caught up —</span>
+            <span className="end-of-feed-label">— You&apos;re all caught up —</span>
           </div>
         )}
       </div>
