@@ -1,18 +1,17 @@
 "use client";
-import { useEffect, useState } from "react";
-import axios from "axios";
-import base_url from "../api/base_url";
+import { useEffect, useState, useCallback } from "react";
 import Post from "./Post";
-import { useRouter } from "next/navigation";
-import { Form, FormGroup, Input } from "reactstrap";
 import { useCategory } from "../hooks/useCategory";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faFilter, faSortAmountDown, faSortAmountUp, faSpinner } from "@fortawesome/free-solid-svg-icons";
+import {
+  faFilter,
+  faSortAmountDown,
+  faSortAmountUp,
+  faSpinner,
+} from "@fortawesome/free-solid-svg-icons";
 import api from "../api/api";
 
-
 const AllPost = () => {
-  const router = useRouter();
   const { categories } = useCategory();
   const [posts, setPosts] = useState([]);
   const [categoryId, setCategoryId] = useState(0);
@@ -20,222 +19,309 @@ const AllPost = () => {
   const [loading, setLoading] = useState(false);
   const [hasMorePosts, setHasMorePosts] = useState(true);
   const [sortBy, setSortBy] = useState("postDate");
-  const [sortDir, setSortDir] = useState("ascending");
+  const [sortDir, setSortDir] = useState("descending");
 
-  const fetchPosts = async () => {
-    if (loading || !hasMorePosts) return;
+  const fetchPosts = useCallback(async (page, category, sort, dir) => {
+    if (typeof window === "undefined") return;
     setLoading(true);
-
     try {
-        if (typeof window === 'undefined') return;
-
-      const url =
-        categoryId === 0
-          ? `/posts`
-          : `/posts/category/${categoryId}`;
-
+      const url = category === 0 ? `/posts` : `/posts/category/${category}`;
       const response = await api.get(url, {
-        params: {
-          pageNumber,
-          pageSize: 3,
-          sortBy,
-          sortDir,
-        },
+        params: { pageNumber: page, pageSize: 5, sortBy: sort, sortDir: dir },
       });
-
-      console.log("Response of fetchPosts(): ",response.data)
       const { data, lastPage } = response.data;
-
-      setPosts((prev)=>{
-        const existingIds  = new Set(prev.map(post => post.postId));
-        console.log("ExistingIds: ",existingIds)
-        const newPosts = data.filter(post => !existingIds.has(post.postId));
-        console.log("New Posts: ",newPosts);
-        return [...prev,...newPosts];
+      setPosts((prev) => {
+        const existingIds = new Set(prev.map((p) => p.postId));
+        const newPosts = data.filter((p) => !existingIds.has(p.postId));
+        return [...prev, ...newPosts];
       });
       setHasMorePosts(!lastPage);
     } catch (error) {
-      console.error(error);
+      console.error("Error fetching posts:", error);
     } finally {
       setLoading(false);
     }
-  };
-
-
-  const sortHandler = (criteria, direction) => {
-    setSortBy(criteria);
-    setSortDir(direction);
-    setPosts([]); // Clear posts to refetch with new sort
-    setPageNumber(0); // Reset page number
-    setHasMorePosts(true); // Allow fetching with new sort
-  };
-
-  
-  useEffect(() => {
-    if (hasMorePosts && !loading) {
-      fetchPosts();
-    }
-  }, [pageNumber, hasMorePosts, sortBy, sortDir,categoryId]);
-
-  function debounce(func, delay) {
-    let timeout;
-    return function (...args) {
-      const context = this;
-      clearTimeout(timeout);
-      timeout = setTimeout(() => {
-        func.apply(context, args);
-      }, delay);
-    };
-  }
-
-  //   useEffect(() => {
-  //     // Reset posts and pagination when categoryId changes
-  //     setPageNumber(0); // Reset to first page
-  //     setPosts([]); // Clear current posts
-  //     setHasMorePosts(true); // Allow further fetching
-
-  //     if (categoryId !== 0) {
-  //       // If categoryId is not 0, fetch category-specific posts
-  //       fetchPostsByCategory();
-  //     } else {
-  //       // If categoryId is 0, fetch all posts
-  //       fetchPosts();
-  //     }
-  //   }, [categoryId]);
+  }, []);
 
   useEffect(() => {
     setPosts([]);
     setPageNumber(0);
     setHasMorePosts(true);
-  }, [categoryId]);
+    fetchPosts(0, categoryId, sortBy, sortDir);
+  }, [categoryId, sortBy, sortDir]);
 
   useEffect(() => {
-    const handleScroll = () => {
-      if (
-        window.innerHeight + document.documentElement.scrollTop >=
-          document.documentElement.offsetHeight - 50 &&
-        hasMorePosts &&
-        !loading
-      ) {
-        setPageNumber((prevPageNumber) => prevPageNumber + 1);
-      }
-    };
+    if (pageNumber === 0) return;
+    if (!hasMorePosts || loading) return;
+    fetchPosts(pageNumber, categoryId, sortBy, sortDir);
+  }, [pageNumber]);
 
-    const debounceHandler = debounce(handleScroll, 50);
-    window.addEventListener("scroll", debounceHandler);
-    return () => {
-      window.removeEventListener("scroll", debounceHandler);
+  useEffect(() => {
+    let timeout;
+    const handleScroll = () => {
+      clearTimeout(timeout);
+      timeout = setTimeout(() => {
+        const nearBottom =
+          window.innerHeight + document.documentElement.scrollTop >=
+          document.documentElement.offsetHeight - 200;
+        if (nearBottom && hasMorePosts && !loading) {
+          setPageNumber((prev) => prev + 1);
+        }
+      }, 100);
     };
+    window.addEventListener("scroll", handleScroll);
+    return () => { window.removeEventListener("scroll", handleScroll); clearTimeout(timeout); };
   }, [hasMorePosts, loading]);
 
-  console.log("Posts: ",posts)
+  const toggleSort = () => {
+    setSortDir((prev) => (prev === "ascending" ? "descending" : "ascending"));
+  };
 
-return (
-    <div className="max-w-4xl mx-auto px-4 pb-8">
-      {/* Filters Section */}
-      <div className="bg-white rounded-2xl shadow-md p-6 mb-8">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0 gap-4">
-          
-          {/* Sort Button */}
-          <div className="flex items-center space-x-3">
-            <div className="flex items-center space-x-2 text-gray-600">
-              <FontAwesomeIcon icon={faSortAmountDown} className="w-4 h-4" />
-              <span className="font-medium text-sm">Sort:</span>
+  const handleCategoryChange = (e) => {
+    setCategoryId(Number(e.target.value));
+  };
+
+  const activeCategoryName = categories?.find((c) => c.categoryId === categoryId)?.categoryTitle;
+
+  return (
+    <>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap');
+
+        .allpost-wrap {
+          max-width: 780px;
+          margin: 0 auto;
+          padding: 0 1.25rem 4rem;
+          font-family: 'DM Sans', sans-serif;
+        }
+        .filter-bar {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          flex-wrap: wrap;
+          gap: 1rem;
+          padding: 1.1rem 1.5rem;
+          background: #fff;
+          border: 1px solid #e8e3db;
+          border-radius: 4px;
+          margin-bottom: 2.5rem;
+        }
+        .filter-label {
+          font-size: 0.72rem;
+          font-weight: 600;
+          letter-spacing: 0.1em;
+          text-transform: uppercase;
+          color: #9e9589;
+          margin-right: 0.6rem;
+        }
+        .sort-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.45rem;
+          padding: 0.45rem 1rem;
+          border-radius: 3px;
+          border: 1px solid #e8e3db;
+          font-family: 'DM Sans', sans-serif;
+          font-size: 0.82rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s;
+          letter-spacing: 0.03em;
+        }
+        .sort-btn.active {
+          background: #1a1a1a;
+          color: #fff;
+          border-color: #1a1a1a;
+        }
+        .sort-btn.inactive {
+          background: #fff;
+          color: #4a4540;
+        }
+        .sort-btn.inactive:hover {
+          border-color: #1a1a1a;
+          color: #1a1a1a;
+        }
+        .category-select {
+          padding: 0.45rem 2rem 0.45rem 0.9rem;
+          border: 1px solid #e8e3db;
+          border-radius: 3px;
+          font-family: 'DM Sans', sans-serif;
+          font-size: 0.82rem;
+          font-weight: 500;
+          color: #1a1a1a;
+          background: #fff;
+          outline: none;
+          cursor: pointer;
+          appearance: none;
+          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath fill='%239e9589' d='M0 0l5 6 5-6z'/%3E%3C/svg%3E");
+          background-repeat: no-repeat;
+          background-position: right 0.8rem center;
+          transition: border-color 0.2s;
+        }
+        .category-select:focus { border-color: #c9a96e; }
+        .active-filter-tag {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.5rem;
+          font-size: 0.78rem;
+          font-weight: 500;
+          color: #1a1a1a;
+          background: #f5f1eb;
+          border: 1px solid #e0dbd3;
+          padding: 0.3rem 0.8rem;
+          border-radius: 2px;
+          margin-top: 0.75rem;
+        }
+        .clear-filter-btn {
+          background: none;
+          border: none;
+          cursor: pointer;
+          color: #9e9589;
+          font-size: 1rem;
+          line-height: 1;
+          padding: 0 2px;
+          transition: color 0.2s;
+        }
+        .clear-filter-btn:hover { color: #1a1a1a; }
+        .section-heading {
+          font-family: 'Playfair Display', serif;
+          font-size: 0.9rem;
+          font-weight: 400;
+          color: #9e9589;
+          letter-spacing: 0.06em;
+          text-transform: uppercase;
+          margin-bottom: 1.5rem;
+          padding-bottom: 0.6rem;
+          border-bottom: 1px solid #e8e3db;
+        }
+        .loading-indicator {
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          gap: 0.6rem;
+          padding: 2.5rem 0;
+          color: #9e9589;
+          font-size: 0.85rem;
+          font-weight: 500;
+          letter-spacing: 0.04em;
+        }
+        .end-of-feed {
+          text-align: center;
+          padding: 2.5rem 0;
+          border-top: 1px solid #e8e3db;
+          margin-top: 1rem;
+        }
+        .end-of-feed-label {
+          display: inline-block;
+          font-size: 0.75rem;
+          font-weight: 600;
+          letter-spacing: 0.12em;
+          text-transform: uppercase;
+          color: #c9a96e;
+        }
+        .empty-state {
+          text-align: center;
+          padding: 5rem 2rem;
+          border: 1px dashed #e0dbd3;
+          border-radius: 4px;
+          background: #fdf9f5;
+        }
+        .empty-state-title {
+          font-family: 'Playfair Display', serif;
+          font-size: 1.4rem;
+          color: #1a1a1a;
+          margin-bottom: 0.5rem;
+        }
+        .empty-state-sub {
+          font-size: 0.88rem;
+          color: #9e9589;
+          font-weight: 300;
+        }
+        .filter-left, .filter-right {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+        }
+      `}</style>
+
+      <div className="allpost-wrap">
+        {/* Filter Bar */}
+        <div>
+          <div className="filter-bar">
+            <div className="filter-left">
+              <span className="filter-label">Sort</span>
+              <button
+                className={`sort-btn ${sortDir === "descending" ? "active" : "inactive"}`}
+                onClick={toggleSort}
+              >
+                <FontAwesomeIcon
+                  icon={sortDir === "descending" ? faSortAmountDown : faSortAmountUp}
+                  style={{ width: 12 }}
+                />
+                {sortDir === "descending" ? "Newest First" : "Oldest First"}
+              </button>
             </div>
-            <button
-              onClick={() => sortHandler("postDate", sortDir === "ascending" ? "descending" : "ascending")}
-              className={`flex items-center space-x-2 px-5 py-2.5 rounded-xl font-semibold transition-all duration-200 ${
-                sortDir === "descending"
-                  ? "bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-md hover:shadow-lg"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-              }`}
-            >
-              <FontAwesomeIcon 
-                icon={sortDir === "descending" ? faSortAmountDown : faSortAmountUp} 
-                className="w-4 h-4" 
-              />
-              <span>{sortDir === "descending" ? "Newest First" : "Oldest First"}</span>
-            </button>
+            <div className="filter-right">
+              <span className="filter-label">
+                <FontAwesomeIcon icon={faFilter} style={{ width: 11, marginRight: 4 }} />
+                Category
+              </span>
+              <select className="category-select" value={categoryId} onChange={handleCategoryChange}>
+                <option value="0">All</option>
+                {categories?.map((cat) => (
+                  <option key={cat.categoryId} value={cat.categoryId}>{cat.categoryTitle}</option>
+                ))}
+              </select>
+            </div>
           </div>
 
-          {/* Category Filter */}
-          <div className="flex items-center space-x-3">
-            <div className="flex items-center space-x-2 text-gray-600">
-              <FontAwesomeIcon icon={faFilter} className="w-4 h-4" />
-              <span className="font-medium text-sm">Filter:</span>
+          {categoryId !== 0 && activeCategoryName && (
+            <div style={{ marginBottom: "1.25rem" }}>
+              <span className="active-filter-tag">
+                Showing: {activeCategoryName}
+                <button className="clear-filter-btn" onClick={() => setCategoryId(0)}>×</button>
+              </span>
             </div>
-            <select
-              value={categoryId}
-              onChange={(e) => setCategoryId(Number(e.target.value))}
-              className="px-5 py-2.5 bg-white border-2 border-gray-200 rounded-xl font-semibold text-gray-700 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none transition-all cursor-pointer hover:border-gray-300"
-            >
-              <option value="0">All Categories</option>
-              {categories && categories.length > 0 && categories.map((category, index) => (
-                <option key={index} value={category.categoryId}>
-                  {category.categoryTitle}
-                </option>
-              ))}
-            </select>
-          </div>
+          )}
         </div>
 
-        {/* Active Filter Display */}
-        {categoryId !== 0 && (
-          <div className="mt-4 flex items-center space-x-2">
-            <span className="text-sm text-gray-600">Showing posts in:</span>
-            <span className="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-lg text-sm font-semibold">
-              {categories.find(cat => cat.categoryId === categoryId)?.categoryTitle}
-            </span>
-            <button
-              onClick={() => setCategoryId(0)}
-              className="text-sm text-gray-500 hover:text-gray-700 underline"
-            >
-              Clear filter
-            </button>
+        {/* Section label */}
+        {posts.length > 0 && (
+          <p className="section-heading">Latest Stories</p>
+        )}
+
+        {/* Posts */}
+        {posts.length > 0 ? (
+          <div>
+            {posts.map((post) => (
+              <Post key={post.postId} post={post} isUserPost={false} onDelete={null} />
+            ))}
+          </div>
+        ) : (
+          !loading && (
+            <div className="empty-state">
+              <h3 className="empty-state-title">No stories yet</h3>
+              <p className="empty-state-sub">Be the first to share something with the community.</p>
+            </div>
+          )
+        )}
+
+        {/* Loading */}
+        {loading && (
+          <div className="loading-indicator">
+            <FontAwesomeIcon icon={faSpinner} className="fa-spin" style={{ width: 16 }} />
+            Loading stories...
+          </div>
+        )}
+
+        {/* End of feed */}
+        {!hasMorePosts && !loading && posts.length > 0 && (
+          <div className="end-of-feed">
+            <span className="end-of-feed-label">— You're all caught up —</span>
           </div>
         )}
       </div>
-
-      {/* Posts List */}
-      {posts.length > 0 ? (
-        <div className="space-y-6">
-          {posts.map((post, index) => (
-            <div key={post.postId || index}>
-              <Post post={post} isUserPost={false} onDelete={null} />
-            </div>
-          ))}
-        </div>
-      ) : !loading && (
-        <div className="bg-white rounded-2xl shadow-md p-12 text-center">
-          <div className="text-gray-400 mb-4">
-            <svg className="w-20 h-20 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-          </div>
-          <h3 className="text-xl font-bold text-gray-800 mb-2">No posts found</h3>
-          <p className="text-gray-600">Be the first to share something amazing!</p>
-        </div>
-      )}
-
-      {/* Loading Indicator */}
-      {loading && hasMorePosts && (
-        <div className="flex justify-center items-center py-8">
-          <div className="flex items-center space-x-3 text-indigo-600">
-            <FontAwesomeIcon icon={faSpinner} className="w-6 h-6 animate-spin" />
-            <span className="font-semibold">Loading more posts...</span>
-          </div>
-        </div>
-      )}
-
-      {/* End of Posts Message */}
-      {!hasMorePosts && !loading && posts.length > 0 && (
-        <div className="bg-gradient-to-r from-indigo-50 to-purple-50 border-2 border-indigo-100 rounded-2xl p-6 mt-8 text-center">
-          <p className="text-indigo-800 font-semibold text-lg">
-            🎉 You have reached the end! You are all caught up.
-          </p>
-        </div>
-      )}
-    </div>
+    </>
   );
 };
 

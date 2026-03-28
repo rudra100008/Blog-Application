@@ -97,9 +97,7 @@ public class SecurityConfig {
 
         List<String> allowedOrigins = List.of(
                 "http://localhost:3000",
-                "https://blog-application-jmzl.vercel.app",
-                "https://blog-application-jmzl-d7ev5c4u5-ashum123s-projects.vercel.app/",
-                "https://blog-application-jmzl-git-vercel-deploy-ashum123s-projects.vercel.app/"
+                "https://blog-application-jmzl.vercel.app"
         );
 
         corsConfig.setAllowedOrigins(allowedOrigins);

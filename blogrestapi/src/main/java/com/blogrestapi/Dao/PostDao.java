@@ -18,11 +18,12 @@ public interface PostDao extends MongoRepository<Post, Integer> {
     Page<Post> findPostByUser(User user, Pageable pageable);
     List<Post> findPostByUser(User user);
 
-    @Query("{ 'user._id': ?0 }")
-    Page<Post> findPostByUserId(int userId,Pageable pageable);
-    // Change this method
-    @Query("{ 'category.categoryId': ?0 }")
-    Page<Post> findPostByCategoryId(int categoryId, Pageable pageable);
+    // Queries the raw DBRef pointer stored in the Post document
+    @Query("{ 'category.$id': ?0 }")
+    Page<Post> findByCategoryId(int categoryId, Pageable pageable);
+
+    @Query("{ 'user.$id': ?0 }")
+    Page<Post> findByUserId(int userId, Pageable pageable);
 
     List<Post> findByPostTitleContainingIgnoreCase(String postTitle);
     Optional<Post> findByPostIdAndUser(int postId, User user);

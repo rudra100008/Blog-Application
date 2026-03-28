@@ -3,6 +3,7 @@ package com.blogrestapi.ServiceImpl;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -14,13 +15,12 @@ import com.blogrestapi.Exception.ResourceNotFoundException;
 import com.blogrestapi.Service.CategoryService;
 
 @Service
+@RequiredArgsConstructor
 public class CategoryServiceImpl implements CategoryService{
-    @Autowired
-    private CategoryDao categoryDao;
-    @Autowired
-    private ModelMapper modelMapper;
-    @Autowired
-    private SequenceGeneratorService sequence;
+    private final CategoryDao categoryDao;
+    private final ModelMapper modelMapper;
+    private final SequenceGeneratorService sequence;
+
     @Override
     public CategoryDTO createCategory(CategoryDTO categoryDTO) {
        categoryDTO.setCategoryId((int)sequence.generateSequence("category_sequence"));

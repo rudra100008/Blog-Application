@@ -6,13 +6,13 @@ const api = axios.create({ baseURL: baseUrl, withCredentials: true });
 
 api.interceptors.request.use(
   (config) => {
-    console.log('Request URL:', config.url);
-    console.log('With credentials:', config.withCredentials);
+    // console.log('Request URL:', config.url);
+    // console.log('With credentials:', config.withCredentials);
     const token = localStorage.getItem('token');
-    console.log("hasToken: ",token !== null);
+    // console.log("hasToken: ",token !== null);
     if(token){
       config.headers.Authorization = `Bearer ${token}`;
-      console.log('✓ Authorization header added to request');
+      //console.log('✓ Authorization header added to request');
     }
     return config;
   },

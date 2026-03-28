@@ -32,6 +32,10 @@ public class PostDTO {
     // @NotNull(message = "Post date cannot be null")
     // @PastOrPresent(message = "Post date must be in the past or present")
     private Date postDate;
-    private int userId;
-    private int categoryId;
+
+    private Integer userId;
+    private String userImageUrl;
+    private String username;
+
+    private Integer categoryId;
 }

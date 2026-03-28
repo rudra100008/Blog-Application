@@ -50,6 +50,19 @@ public class DataInitializer implements CommandLineRunner {
     private String annapurnaImageUrl;
 
 
+    @Value("${user.image.admin}")
+    private String adminImageUrl;
+
+    @Value("${user.image.john}")
+    private String johnImageUrl;
+
+    @Value("${user.image.jane}")
+    private String janeImageUrl;
+
+    @Value("${user.image.mike}")
+    private String mikeImageUrl;
+
+
     private static final String CATEGORY_SEQUENCE = "category_sequence";
     private static  final String USER_SEQUENCE = "user_sequence";
     private static final String ROLE_ADMIN = "ROLE_ADMIN";
@@ -114,6 +127,7 @@ public class DataInitializer implements CommandLineRunner {
             admin.setEmail("admin@blogapi.com");
             admin.setPassword(passwordEncoder.encode("admin123"));
             admin.setImage("default-admin.jpg");
+            admin.setImageUrl(adminImageUrl);
             admin.setPhoneNumber("+977-9801234567");
             admin.setDescription("System Administrator");
             admin.setEnable(true);
@@ -128,6 +142,7 @@ public class DataInitializer implements CommandLineRunner {
             user1.setEmail("john.doe@example.com");
             user1.setPassword(passwordEncoder.encode(PASSWORD));
             user1.setImage("john-avatar.jpg");
+            user1.setImageUrl(johnImageUrl);
             user1.setPhoneNumber("+977-9812345678");
             user1.setDescription("Tech enthusiast and blogger");
             user1.setEnable(true);
@@ -141,6 +156,7 @@ public class DataInitializer implements CommandLineRunner {
             user2.setEmail("jane.smith@example.com");
             user2.setPassword(passwordEncoder.encode(PASSWORD));
             user2.setImage("jane-avatar.jpg");
+            user2.setImageUrl(janeImageUrl);
             user2.setPhoneNumber("+977-9823456789");
             user2.setDescription("Travel blogger and photographer");
             user2.setEnable(true);
@@ -154,6 +170,7 @@ public class DataInitializer implements CommandLineRunner {
             user3.setEmail("mike.wilson@example.com");
             user3.setPassword(passwordEncoder.encode(PASSWORD));
             user3.setImage("mike-avatar.jpg");
+            user3.setImageUrl(mikeImageUrl);
             user3.setPhoneNumber("+977-9834567890");
             user3.setDescription("Food critic and recipe creator");
             user3.setEnable(true);
@@ -172,9 +189,9 @@ public class DataInitializer implements CommandLineRunner {
         if (postDao.count() == 0) {
             List<Post> posts = new ArrayList<>();
 
-            User user1 = userDao.findById(2).orElse(null);
-            User user2 = userDao.findById(3).orElse(null);
-            User user3 = userDao.findById(4).orElse(null);
+            User user1 = userDao.findById(11).orElse(null);
+            User user2 = userDao.findById(12).orElse(null);
+            User user3 = userDao.findById(13).orElse(null);
 
             Category techCategory = categoryDao.findById(1).orElse(null);
             Category travelCategory = categoryDao.findById(3).orElse(null);

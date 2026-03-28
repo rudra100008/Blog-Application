@@ -29,10 +29,11 @@ public class Post {
     private String imageUrl; // to store url of cloud
     private String publicId;
     private Date postDate;
+    @DBRef
     private User user;
-
+    @DBRef
     private Category category;
-
+    @DBRef
     private Set<Comment> comments=new HashSet<>();
 
    
