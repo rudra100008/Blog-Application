@@ -189,9 +189,9 @@ public class DataInitializer implements CommandLineRunner {
         if (postDao.count() == 0) {
             List<Post> posts = new ArrayList<>();
 
-            User user1 = userDao.findById(11).orElse(null);
-            User user2 = userDao.findById(12).orElse(null);
-            User user3 = userDao.findById(13).orElse(null);
+            User user1 = userDao.findById(2).orElse(null);
+            User user2 = userDao.findById(3).orElse(null);
+            User user3 = userDao.findById(4).orElse(null);
 
             Category techCategory = categoryDao.findById(1).orElse(null);
             Category travelCategory = categoryDao.findById(3).orElse(null);
