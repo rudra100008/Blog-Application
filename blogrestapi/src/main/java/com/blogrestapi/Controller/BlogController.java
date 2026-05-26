@@ -1,34 +1,25 @@
 
 package com.blogrestapi.Controller;
 
-import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.HashMap;
-
 import java.util.List;
 import java.util.Map;
-
-
-import com.blogrestapi.DTO.CloudinaryResponse;
 import com.blogrestapi.Dao.UserDao;
 import com.blogrestapi.Entity.User;
 import com.blogrestapi.Exception.ResourceNotFoundException;
-import com.blogrestapi.Security.UserDetailService;
 import com.blogrestapi.Service.CloudFileService;
 import com.blogrestapi.ServiceImpl.FileServiceImpl;
 import com.blogrestapi.ValidationGroup.UpdateUserGroup;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.validation.BindingResult;
@@ -36,7 +27,6 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import com.blogrestapi.DTO.UserDTO;
 import com.blogrestapi.Service.UserService;
-import jakarta.validation.Valid;
 import org.springframework.web.multipart.MultipartFile;
 
 @Slf4j
@@ -50,7 +40,6 @@ public class BlogController {
     @Value("${project.users.image}")
     private  String imagePath;
     private final UserDao userDao;
-    private final CloudFileService cloudFileService;
 
     // this handler get all the user data from the database
     @GetMapping("/users")
@@ -146,11 +135,6 @@ public class BlogController {
        userDTO.setImage(fileName);
        UserDTO user =this.userService.updateUserById(id,userDTO);
        return ResponseEntity.status(HttpStatus.OK).body(user) ;
-    }
-
-    //helper method
-    private String getUserImagePath(Integer userId){
-        return "/user/"+ userId + "/fetchImage";
     }
 
 }

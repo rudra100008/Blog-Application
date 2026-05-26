@@ -1,6 +1,6 @@
 package com.blogrestapi.Controller;
 
-import java.io.IOException;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -8,9 +8,7 @@ import com.blogrestapi.Dao.UserDao;
 import com.blogrestapi.Entity.User;
 import com.blogrestapi.Exception.ResourceNotFoundException;
 import com.blogrestapi.Security.JwtAuthenticationSuccessHandler;
-import com.blogrestapi.ServiceImpl.FileServiceImpl;
 import com.blogrestapi.ValidationGroup.CreateUserGroup;
-import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -20,15 +18,12 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import com.blogrestapi.DTO.JwtRequest;
 import com.blogrestapi.DTO.UserDTO;
-import com.blogrestapi.Security.JWTTokenHelper;
-import com.blogrestapi.Security.UserDetailService;
 import com.blogrestapi.Service.UserService;
 
 import jakarta.validation.Valid;
@@ -38,14 +33,11 @@ import org.springframework.web.multipart.MultipartFile;
 @RequestMapping("/api")
 @RequiredArgsConstructor
 public class AuthController {
-    private final JWTTokenHelper jwtTokenHelper;
     private final AuthenticationManager authenticationManager;
-    private final UserDetailService userDetailService;
     private final  UserService userService;
     private final UserDao userDao;
     @Value("${project.users.image}")
     private String imagePath;
-    private final FileServiceImpl fileService;
     private final JwtAuthenticationSuccessHandler successHandler;
 
     @PostMapping("/login")
@@ -110,10 +102,5 @@ public class AuthController {
         response.put("message", "User inserted successfully");
         response.put("data", saveUser);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
-    }
-
-    //helper method
-    private String getUserImagePath(Integer userId){
-        return "/user/"+ userId + "/fetchImage";
     }
 }
